@@ -192,6 +192,12 @@ import threading
 import http.server
 import socketserver
 import os
+import asyncio
+from telegram.ext import ApplicationBuilder
+
+WEBHOOK_PATH = "/webhook"
+PORT = int(os.environ.get("PORT", 10000))
+PUBLIC_URL = os.environ.get("PUBLIC_URL")  # будем задать в Render
 
 def run_dummy_server():
     port = int(os.environ.get("PORT", 10000))
@@ -201,37 +207,54 @@ def run_dummy_server():
         print(f"🌐 Dummy server running on port {port}")
         httpd.serve_forever()
 
-def main():
-     # ---- запускаем HTTP сервер в отдельном потоке ----
-    t = threading.Thread(target=run_dummy_server, daemon=True)
-    t.start()
+async def main():
+    if not PUBLIC_URL:
+        raise RuntimeError("PUBLIC_URL environment variable is not set")
 
-    # ---- Telegram бот ----
+    webhook_url = PUBLIC_URL.rstrip("/") + WEBHOOK_PATH
+
+    print("🌍 Webhook URL:", webhook_url)
+
     app = ApplicationBuilder().token(TOKEN).build()
 
     conv = ConversationHandler(
-    entry_points=[CommandHandler("start", start)],
-    states={
-        0: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer),
-            CommandHandler("back", back),
-            CommandHandler("status", status),
+        entry_points=[CommandHandler("start", start)],
+        states={
+            0: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer),
+                CommandHandler("back", back),
+                CommandHandler("status", status),
+                CommandHandler("stop", stop),
+                CommandHandler("cancel", stop),
+            ]
+        },
+        fallbacks=[
             CommandHandler("stop", stop),
             CommandHandler("cancel", stop),
-        ]
-    },
-    fallbacks=[
-        CommandHandler("stop", stop),
-        CommandHandler("cancel", stop),
-    ],
-)
+        ],
+    )
 
     app.add_handler(conv)
-    app.run_polling()
+
+    # --- webhook instead of polling ---
+    await app.bot.set_webhook(webhook_url)
+
+    await app.initialize()
+    await app.start()
+
+    await app.start_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path=WEBHOOK_PATH,
+    )
+
+    print("🤖 Bot is running via webhook")
+
+    await asyncio.Event().wait()  # держим процесс живым
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
 
 
 
