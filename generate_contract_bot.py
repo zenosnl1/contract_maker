@@ -179,6 +179,12 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return ConversationHandler.END
 
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
 
 # ===== main =====
 
@@ -189,7 +195,7 @@ import os
 
 def run_dummy_server():
     port = int(os.environ.get("PORT", 10000))
-    handler = http.server.SimpleHTTPRequestHandler
+    handler = Handler
 
     with socketserver.TCPServer(("", port), handler) as httpd:
         print(f"🌐 Dummy server running on port {port}")
@@ -221,11 +227,19 @@ def main():
 )
 
     app.add_handler(conv)
-    app.run_polling()
+    while True:
+    try:
+        print("🤖 Starting Telegram polling...")
+        app.run_polling()
+    except Exception as e:
+        print("🔥 Bot crashed:", e)
+        import time
+        time.sleep(5)
 
 
 if __name__ == "__main__":
     main()
+
 
 
 
