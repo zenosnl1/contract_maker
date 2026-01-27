@@ -115,6 +115,47 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("📄 Начинаем создание договора.\n\n" + QUESTIONS[FIELDS[0]])
     return 0
 
+async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.clear()
+    await update.message.reply_text(
+        "🛑 Процесс заполнения остановлен.\n\n"
+        "Напишите /start чтобы начать заново."
+    )
+    return ConversationHandler.END
+
+async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    step = context.user_data.get("step", 0)
+
+    if step <= 0:
+        await update.message.reply_text(
+            "Вы уже в начале. Введите значение или используйте /stop."
+        )
+        return 0
+
+    step -= 1
+    context.user_data["step"] = step
+
+    field = FIELDS[step]
+
+    await update.message.reply_text(
+        f"⬅️ Возврат назад.\n\n{QUESTIONS[field]}"
+    )
+
+    return 0
+
+async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.user_data:
+        await update.message.reply_text("Пока ничего не введено.")
+        return 0
+
+    lines = ["📋 Текущие данные:"]
+
+    for f in FIELDS:
+        if f in context.user_data:
+            lines.append(f"• {f}: {context.user_data[f]}")
+
+    await update.message.reply_text("\n".join(lines))
+    return 0
 
 async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data["step"]
@@ -163,10 +204,21 @@ def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
     conv = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
-        states={0: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer)]},
-        fallbacks=[],
-    )
+    entry_points=[CommandHandler("start", start)],
+    states={
+        0: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer),
+            CommandHandler("back", back),
+            CommandHandler("status", status),
+            CommandHandler("stop", stop),
+            CommandHandler("cancel", stop),
+        ]
+    },
+    fallbacks=[
+        CommandHandler("stop", stop),
+        CommandHandler("cancel", stop),
+    ],
+)
 
     app.add_handler(conv)
     app.run_polling()
@@ -174,5 +226,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
