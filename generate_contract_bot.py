@@ -10,7 +10,7 @@ from telegram.ext import (
     filters,
 )
 
-TOKEN = "7718573173:AAFxvApNFCBhErPZOviJpTAHVkfShqQkUOM"
+TOKEN = os.environ["BOT_TOKEN"]
 
 CONTRACT_TEMPLATE = "template_contract.docx"
 ACT_TEMPLATE = "template_act.docx"
@@ -156,3 +156,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
