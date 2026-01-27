@@ -227,18 +227,12 @@ def main():
 )
 
     app.add_handler(conv)
-    while True:
-    try:
-        print("🤖 Starting Telegram polling...")
-        app.run_polling()
-    except Exception as e:
-        print("🔥 Bot crashed:", e)
-        import time
-        time.sleep(5)
+    app.run_polling()
 
 
 if __name__ == "__main__":
     main()
+
 
 
 
