@@ -141,7 +141,25 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ===== main =====
 
+import threading
+import http.server
+import socketserver
+import os
+
+def run_dummy_server():
+    port = int(os.environ.get("PORT", 10000))
+    handler = http.server.SimpleHTTPRequestHandler
+
+    with socketserver.TCPServer(("", port), handler) as httpd:
+        print(f"🌐 Dummy server running on port {port}")
+        httpd.serve_forever()
+
 def main():
+     # ---- запускаем HTTP сервер в отдельном потоке ----
+    t = threading.Thread(target=run_dummy_server, daemon=True)
+    t.start()
+
+    # ---- Telegram бот ----
     app = ApplicationBuilder().token(TOKEN).build()
 
     conv = ConversationHandler(
@@ -156,4 +174,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
