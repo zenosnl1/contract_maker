@@ -206,11 +206,14 @@ def run_dummy_server():
         print(f"🌐 Dummy server running on port {port}")
         httpd.serve_forever()
 
-async def main():
-    if not PUBLIC_URL:
-        raise RuntimeError("PUBLIC_URL environment variable is not set")
+def main():
+    port = int(os.environ.get("PORT", 10000))
+    public_url = os.environ.get("PUBLIC_URL")
 
-    webhook_url = PUBLIC_URL.rstrip("/") + WEBHOOK_PATH
+    if not public_url:
+        raise RuntimeError("PUBLIC_URL env var is not set")
+
+    webhook_url = public_url.rstrip("/") + WEBHOOK_PATH
 
     print("🌍 Webhook URL:", webhook_url)
 
@@ -235,25 +238,18 @@ async def main():
 
     app.add_handler(conv)
 
-    # --- webhook instead of polling ---
-    await app.bot.set_webhook(webhook_url)
-
-    await app.initialize()
-    await app.start()
-
-    await app.start_webhook(
+    # 🚀 Самый стабильный запуск webhook
+    app.run_webhook(
         listen="0.0.0.0",
-        port=PORT,
+        port=port,
         url_path=WEBHOOK_PATH,
+        webhook_url=webhook_url,
     )
-
-    print("🤖 Bot is running via webhook")
-
-    await asyncio.Event().wait()  # держим процесс живым
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
+
 
 
 
