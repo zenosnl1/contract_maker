@@ -1,5 +1,11 @@
 import os
 from docx import Document
+import threading
+import http.server
+import socketserver
+import os
+import asyncio
+from telegram.ext import ApplicationBuilder
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -188,13 +194,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 # ===== main =====
 
-import threading
-import http.server
-import socketserver
-import os
-import asyncio
-from telegram.ext import ApplicationBuilder
-
 WEBHOOK_PATH = "/webhook"
 PORT = int(os.environ.get("PORT", 10000))
 PUBLIC_URL = os.environ.get("PUBLIC_URL")  # будем задать в Render
@@ -255,6 +254,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
