@@ -387,6 +387,9 @@ def main():
         states={
             0: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer),
+                CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"),
+                CallbackQueryHandler(date_callback, pattern="^DATE:"),
+                CallbackQueryHandler(checkout_callback, pattern="^CHECKOUT:"),
                 CommandHandler("back", back),
                 CommandHandler("status", status),
                 CommandHandler("stop", stop),
@@ -401,9 +404,6 @@ def main():
     )
 
     app.add_handler(conv)
-    app.add_handler(CallbackQueryHandler(date_callback, pattern="^DATE:"))
-    app.add_handler(CallbackQueryHandler(checkout_callback, pattern="^CHECKOUT:"))
-    app.add_handler(CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"))
 
     # 🚀 Самый стабильный запуск webhook
     app.run_webhook(
@@ -420,6 +420,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
