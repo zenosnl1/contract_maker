@@ -25,7 +25,6 @@ CONTRACT_TEMPLATE = "template_contract.docx"
 ACT_TEMPLATE = "template_act.docx"
 
 FIELDS = [
-    "CONTRACT_NUMBER",
     "FLAT_NUMBER",
     "CLIENT_NAME",
     "CLIENT_ID",
@@ -36,12 +35,10 @@ FIELDS = [
     "END_DATE",
 "CHECKOUT_TIME",
 "PRICE_PER_DAY",
-    "TOTAL_PRICE",
     "DEPOSIT",
 ]
 
 QUESTIONS = {
-    "CONTRACT_NUMBER": "Введите номер договора:",
     "FLAT_NUMBER": "Номер помещения:",
     "CLIENT_NAME": "Имя клиента:",
     "CLIENT_ID": "Документ / персональный код:",
@@ -52,7 +49,6 @@ QUESTIONS = {
     "END_DATE": "Дата выезда:",
 "CHECKOUT_TIME": "Время выезда:",
 "PRICE_PER_DAY": "Цена за ночь:",
-    "TOTAL_PRICE": "Общая сумма:",
     "DEPOSIT": "Депозит:",
 }
 
@@ -227,27 +223,26 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step += 1
     context.user_data["step"] = step
 
-    if step < len(FIELDS):
+        if step < len(FIELDS):
 
-    next_field = FIELDS[step]
+        next_field = FIELDS[step]
 
-    if next_field == "START_DATE":
-        await update.message.reply_text(
-            "📅 Выберите дату заезда:",
-            reply_markup=date_keyboard(),
-        )
+        if next_field == "START_DATE":
+            await update.message.reply_text(
+                "📅 Выберите дату заезда:",
+                reply_markup=date_keyboard(),
+            )
+            return 0
+
+        if next_field == "END_DATE":
+            await update.message.reply_text(
+                "📅 Выберите дату выезда:",
+                reply_markup=date_keyboard(),
+            )
+            return 0
+
+        await update.message.reply_text(QUESTIONS[next_field])
         return 0
-
-    if next_field == "END_DATE":
-        await update.message.reply_text(
-            "📅 Выберите дату выезда:",
-            reply_markup=date_keyboard(),
-        )
-        return 0
-
-    await update.message.reply_text(QUESTIONS[next_field])
-    return 0
-
 
     files = generate_docs(context.user_data)
 
@@ -323,6 +318,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
