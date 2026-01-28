@@ -286,7 +286,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data[field] = update.message.text.strip()
 
-        # если только что ввели цену — считаем сумму
+    # если только что ввели цену — считаем сумму
     if field == "PRICE_PER_DAY":
 
         start = datetime.strptime(context.user_data["START_DATE"], "%d.%m.%Y")
@@ -321,12 +321,14 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=date_keyboard(),
             )
             return 0
+
         if next_field == "CHECKOUT_TIME":
             await update.message.reply_text(
                 "⏰ Выберите время выезда:",
                 reply_markup=checkout_keyboard(),
             )
             return 0
+
         await update.message.reply_text(QUESTIONS[next_field])
         return 0
 
@@ -342,7 +344,6 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     return ConversationHandler.END
-
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -401,6 +402,7 @@ def main():
             CommandHandler("cancel", stop),
         ],
         allow_reentry=True,
+        per_message=True,
     )
 
     app.add_handler(conv)
@@ -420,6 +422,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
