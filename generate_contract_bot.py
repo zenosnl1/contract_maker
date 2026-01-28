@@ -379,6 +379,7 @@ def main():
 
     app = ApplicationBuilder().token(TOKEN).build()
 
+    app.add_handler(CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"))
     app.add_handler(CommandHandler("stop", stop))
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("cancel", stop))
@@ -388,7 +389,6 @@ def main():
         states={
             0: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer),
-                CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"),
                 CallbackQueryHandler(date_callback, pattern="^DATE:"),
                 CallbackQueryHandler(checkout_callback, pattern="^CHECKOUT:"),
                 CommandHandler("back", back),
@@ -421,6 +421,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
