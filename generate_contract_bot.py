@@ -204,8 +204,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text(
-        "🛑 Процесс заполнения остановлен.\n\n"
-        "Напишите /start чтобы начать заново."
+        "🛑 Процесс заполнения остановлен.",
+        reply_markup=start_keyboard(),
     )
     return ConversationHandler.END
 
@@ -398,6 +398,7 @@ def main():
     app.add_handler(conv)
     app.add_handler(CallbackQueryHandler(date_callback, pattern="^DATE:"))
     app.add_handler(CallbackQueryHandler(checkout_callback, pattern="^CHECKOUT:"))
+    app.add_handler(CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"))
 
     # 🚀 Самый стабильный запуск webhook
     app.run_webhook(
@@ -410,6 +411,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
