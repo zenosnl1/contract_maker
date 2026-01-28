@@ -15,6 +15,9 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CallbackQueryHandler
+from datetime import date, timedelta, datetime
 
 TOKEN = os.environ["BOT_TOKEN"]
 
@@ -55,6 +58,58 @@ QUESTIONS = {
 
 
 # ===== Word replacement =====
+
+async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    iso = query.data.split(":")[1]
+    d = datetime.fromisoformat(iso)
+
+    step = context.user_data["step"]
+    field = FIELDS[step]
+
+    context.user_data[field] = d.strftime("%d.%m.%Y")
+
+    step += 1
+    context.user_data["step"] = step
+
+    # если выбрали END_DATE → считаем сумму
+    if field == "END_DATE":
+
+        start = datetime.strptime(context.user_data["START_DATE"], "%d.%m.%Y")
+        end = datetime.strptime(context.user_data["END_DATE"], "%d.%m.%Y")
+
+        nights = (end - start).days
+        price = int(context.user_data["PRICE_PER_DAY"])
+
+        context.user_data["TOTAL_PRICE"] = str(nights * price)
+
+        await query.edit_message_text(
+            f"💶 {nights} ночей × {price} € = {nights * price} €\n\n"
+            f"{QUESTIONS[FIELDS[step]]}"
+        )
+        return 0
+
+    # иначе обычный переход
+    await query.edit_message_text(QUESTIONS[FIELDS[step]])
+    return 0
+
+
+def date_keyboard(days=14):
+    today = date.today()
+    buttons = []
+
+    for i in range(days):
+        d = today + timedelta(days=i)
+        buttons.append([
+            InlineKeyboardButton(
+                d.strftime("%d.%m.%Y"),
+                callback_data=f"DATE:{d.isoformat()}"
+            )
+        ])
+
+    return InlineKeyboardMarkup(buttons)
 
 def replace_everywhere(doc, data):
     for p in doc.paragraphs:
@@ -173,8 +228,26 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["step"] = step
 
     if step < len(FIELDS):
-        await update.message.reply_text(QUESTIONS[FIELDS[step]])
+
+    next_field = FIELDS[step]
+
+    if next_field == "START_DATE":
+        await update.message.reply_text(
+            "📅 Выберите дату заезда:",
+            reply_markup=date_keyboard(),
+        )
         return 0
+
+    if next_field == "END_DATE":
+        await update.message.reply_text(
+            "📅 Выберите дату выезда:",
+            reply_markup=date_keyboard(),
+        )
+        return 0
+
+    await update.message.reply_text(QUESTIONS[next_field])
+    return 0
+
 
     files = generate_docs(context.user_data)
 
@@ -237,6 +310,7 @@ def main():
     )
 
     app.add_handler(conv)
+    app.add_handler(CallbackQueryHandler(date_callback, pattern="^DATE:"))
 
     # 🚀 Самый стабильный запуск webhook
     app.run_webhook(
@@ -249,6 +323,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
