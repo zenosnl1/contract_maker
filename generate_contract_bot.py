@@ -378,6 +378,10 @@ def main():
 
     app = ApplicationBuilder().token(TOKEN).build()
 
+    app.add_handler(CommandHandler("stop", stop))
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("cancel", stop))
+
     conv = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
@@ -393,6 +397,7 @@ def main():
             CommandHandler("stop", stop),
             CommandHandler("cancel", stop),
         ],
+        allow_reentry=True,
     )
 
     app.add_handler(conv)
@@ -408,9 +413,14 @@ def main():
         webhook_url=webhook_url,
     )
 
+    async def error_handler(update, context):
+        print("🔥 ERROR:", context.error)
+    
+    app.add_error_handler(error_handler)
 
 if __name__ == "__main__":
     main()
+
 
 
 
