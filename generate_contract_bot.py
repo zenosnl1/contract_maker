@@ -66,14 +66,13 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data["step"]
     field = FIELDS[step]
 
-    # записываем дату
+    # сохраняем дату
     context.user_data[field] = d.strftime("%d.%m.%Y")
 
-    # двигаемся дальше
     step += 1
     context.user_data["step"] = step
 
-    # если был START_DATE — показываем календарь для END_DATE
+    # после START_DATE — показываем END_DATE
     if field == "START_DATE":
         await query.edit_message_text(
             "📅 Выберите дату выезда:",
@@ -81,24 +80,12 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return 0
 
-    # если был END_DATE — считаем сумму и спрашиваем CHECKOUT_TIME
-    if field == "END_DATE":
+    # после END_DATE — просто спрашиваем следующий шаг (CHECKOUT_TIME)
+    next_field = FIELDS[step]
 
-        start = datetime.strptime(context.user_data["START_DATE"], "%d.%m.%Y")
-        end = datetime.strptime(context.user_data["END_DATE"], "%d.%m.%Y")
+    await query.edit_message_text(QUESTIONS[next_field])
+    return 0
 
-        nights = (end - start).days
-        price = int(context.user_data["PRICE_PER_DAY"])
-
-        context.user_data["TOTAL_PRICE"] = str(nights * price)
-
-        next_field = FIELDS[step]  # CHECKOUT_TIME
-
-        await query.edit_message_text(
-            f"💶 {nights} ночей × {price} € = {nights * price} €\n\n"
-            f"{QUESTIONS[next_field]}"
-        )
-        return 0
 
 def date_keyboard(days=30):
     today = date.today()
@@ -229,6 +216,21 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data[field] = update.message.text.strip()
 
+        # если только что ввели цену — считаем сумму
+    if field == "PRICE_PER_DAY":
+
+        start = datetime.strptime(context.user_data["START_DATE"], "%d.%m.%Y")
+        end = datetime.strptime(context.user_data["END_DATE"], "%d.%m.%Y")
+
+        nights = (end - start).days
+        price = int(context.user_data["PRICE_PER_DAY"])
+
+        context.user_data["TOTAL_PRICE"] = str(nights * price)
+
+        await update.message.reply_text(
+            f"💶 {nights} ночей × {price} € = {nights * price} €"
+        )
+
     step += 1
     context.user_data["step"] = step
 
@@ -328,6 +330,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
