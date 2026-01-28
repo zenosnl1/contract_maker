@@ -215,6 +215,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return 0
 
 async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     step = context.user_data["step"]
     field = FIELDS[step]
 
@@ -223,7 +224,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step += 1
     context.user_data["step"] = step
 
-        if step < len(FIELDS):
+    if step < len(FIELDS):
 
         next_field = FIELDS[step]
 
@@ -252,6 +253,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Готово! Договор и акт сформированы.")
 
     return ConversationHandler.END
+
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -318,6 +320,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
