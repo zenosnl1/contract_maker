@@ -109,6 +109,10 @@ def checkout_keyboard():
 
     return InlineKeyboardMarkup(buttons)
 
+def start_keyboard():
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("▶️ Начать оформление", callback_data="START_FLOW")]]
+    )
 
 def date_keyboard(days=30):
     today = date.today()
@@ -185,10 +189,17 @@ def generate_docs(data):
 # ===== Telegram flow =====
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     context.user_data.clear()
-    context.user_data["step"] = 0
-    await update.message.reply_text("📄 Начинаем создание договора.\n\n" + QUESTIONS[FIELDS[0]])
+
+    await update.message.reply_text(
+        "👋 Добро пожаловать!\n\n"
+        "Нажмите кнопку ниже, чтобы начать оформление договора.",
+        reply_markup=start_keyboard(),
+    )
+
     return 0
+
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
@@ -232,12 +243,27 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n".join(lines))
     return 0
 
+async def start_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data.clear()
+    context.user_data["step"] = 0
+
+    await query.edit_message_text(
+        "📄 Начинаем создание договора.\n\n"
+        + QUESTIONS[FIELDS[0]]
+    )
+
+    return 0
+
 async def checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     query = update.callback_query
     await query.answer()
 
-    time_val = query.data.split(":")[1]
+    time_val = query.data.replace("CHECKOUT:", "")
 
     step = context.user_data["step"]
     field = FIELDS[step]  # CHECKOUT_TIME
@@ -309,7 +335,11 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for f in files:
         await update.message.reply_document(document=open(f, "rb"))
 
-    await update.message.reply_text("✅ Готово! Договор и акт сформированы.")
+    await update.message.reply_text(
+        "✅ Готово! Договор и акт сформированы.\n\n"
+        "Можете оформить следующий договор:",
+        reply_markup=start_keyboard(),
+    )
 
     return ConversationHandler.END
 
@@ -380,6 +410,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
