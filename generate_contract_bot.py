@@ -56,6 +56,7 @@ QUESTIONS = {
 # ===== Word replacement =====
 
 async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     query = update.callback_query
     await query.answer()
 
@@ -65,12 +66,22 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data["step"]
     field = FIELDS[step]
 
+    # записываем дату
     context.user_data[field] = d.strftime("%d.%m.%Y")
 
+    # двигаемся дальше
     step += 1
     context.user_data["step"] = step
 
-    # если выбрали END_DATE → считаем сумму
+    # если был START_DATE — показываем календарь для END_DATE
+    if field == "START_DATE":
+        await query.edit_message_text(
+            "📅 Выберите дату выезда:",
+            reply_markup=date_keyboard(),
+        )
+        return 0
+
+    # если был END_DATE — считаем сумму и спрашиваем CHECKOUT_TIME
     if field == "END_DATE":
 
         start = datetime.strptime(context.user_data["START_DATE"], "%d.%m.%Y")
@@ -81,25 +92,13 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         context.user_data["TOTAL_PRICE"] = str(nights * price)
 
+        next_field = FIELDS[step]  # CHECKOUT_TIME
+
         await query.edit_message_text(
             f"💶 {nights} ночей × {price} € = {nights * price} €\n\n"
-            f"{QUESTIONS[FIELDS[step]]}"
+            f"{QUESTIONS[next_field]}"
         )
         return 0
-
-    # иначе обычный переход
-    next_field = FIELDS[step]
-
-    if next_field == "END_DATE":
-        await query.edit_message_text(
-            "📅 Выберите дату выезда:",
-            reply_markup=date_keyboard(),
-        )
-        return 0
-
-    await query.edit_message_text(QUESTIONS[next_field])
-    return 0
-
 
 def date_keyboard(days=30):
     today = date.today()
@@ -329,6 +328,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
