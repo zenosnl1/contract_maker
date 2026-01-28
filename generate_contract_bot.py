@@ -87,6 +87,21 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return 0
 
 
+def checkout_keyboard():
+    buttons = [
+        [
+            InlineKeyboardButton("09:00", callback_data="CHECKOUT:09:00"),
+            InlineKeyboardButton("12:00", callback_data="CHECKOUT:12:00"),
+        ],
+        [
+            InlineKeyboardButton("15:00", callback_data="CHECKOUT:15:00"),
+            InlineKeyboardButton("18:00", callback_data="CHECKOUT:18:00"),
+        ],
+    ]
+
+    return InlineKeyboardMarkup(buttons)
+
+
 def date_keyboard(days=30):
     today = date.today()
     buttons = []
@@ -209,6 +224,27 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n".join(lines))
     return 0
 
+async def checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.callback_query
+    await query.answer()
+
+    time_val = query.data.split(":")[1]
+
+    step = context.user_data["step"]
+    field = FIELDS[step]  # CHECKOUT_TIME
+
+    context.user_data[field] = time_val
+
+    step += 1
+    context.user_data["step"] = step
+
+    next_field = FIELDS[step]
+
+    await query.edit_message_text(QUESTIONS[next_field])
+    return 0
+
+
 async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     step = context.user_data["step"]
@@ -251,7 +287,12 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=date_keyboard(),
             )
             return 0
-
+        if next_field == "CHECKOUT_TIME":
+            await update.message.reply_text(
+                "⏰ Выберите время выезда:",
+                reply_markup=checkout_keyboard(),
+            )
+            return 0
         await update.message.reply_text(QUESTIONS[next_field])
         return 0
 
@@ -318,6 +359,7 @@ def main():
 
     app.add_handler(conv)
     app.add_handler(CallbackQueryHandler(date_callback, pattern="^DATE:"))
+    app.add_handler(CallbackQueryHandler(checkout_callback, pattern="^CHECKOUT:"))
 
     # 🚀 Самый стабильный запуск webhook
     app.run_webhook(
@@ -330,6 +372,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
