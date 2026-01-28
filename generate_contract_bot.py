@@ -83,8 +83,16 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # после END_DATE — просто спрашиваем следующий шаг (CHECKOUT_TIME)
     next_field = FIELDS[step]
 
+    if next_field == "CHECKOUT_TIME":
+        await query.edit_message_text(
+            "⏰ Выберите время выезда:",
+            reply_markup=checkout_keyboard(),
+        )
+        return 0
+    
     await query.edit_message_text(QUESTIONS[next_field])
     return 0
+
 
 
 def checkout_keyboard():
@@ -372,6 +380,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
