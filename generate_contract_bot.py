@@ -88,11 +88,20 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return 0
 
     # иначе обычный переход
-    await query.edit_message_text(QUESTIONS[FIELDS[step]])
+   next_field = FIELDS[step]
+
+    if next_field == "END_DATE":
+        await query.edit_message_text(
+            "📅 Выберите дату выезда:",
+            reply_markup=date_keyboard(),
+        )
+        return 0
+
+    await query.edit_message_text(QUESTIONS[next_field])
     return 0
 
 
-def date_keyboard(days=14):
+def date_keyboard(days=30):
     today = date.today()
     buttons = []
 
@@ -320,6 +329,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
