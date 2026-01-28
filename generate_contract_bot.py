@@ -307,8 +307,16 @@ async def skip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     next_field = FIELDS[step]
 
+    if next_field in ["CLIENT_ADDRESS", "CLIENT_MAIL"]:
+        await query.edit_message_text(
+            QUESTIONS[next_field],
+            reply_markup=skip_keyboard(),
+        )
+        return 0
+    
     await query.edit_message_text(QUESTIONS[next_field])
     return 0
+
 
 
 async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -464,6 +472,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
