@@ -74,11 +74,14 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # после START_DATE — показываем END_DATE
     if field == "START_DATE":
+        next_day = d + timedelta(days=1)
+    
         await query.edit_message_text(
             "📅 Выберите дату выезда:",
-            reply_markup=date_keyboard(),
+            reply_markup=date_keyboard(start_from=next_day),
         )
         return 0
+
 
     # после END_DATE — просто спрашиваем следующий шаг (CHECKOUT_TIME)
     next_field = FIELDS[step]
@@ -114,20 +117,31 @@ def start_keyboard():
         [[InlineKeyboardButton("▶️ Начать оформление", callback_data="START_FLOW")]]
     )
 
-def date_keyboard(days=30):
-    today = date.today()
+def date_keyboard(days=30, start_from=None):
+
+    if start_from:
+        base = start_from
+    else:
+        base = date.today()
+
     buttons = []
 
     for i in range(days):
-        d = today + timedelta(days=i)
+        d = base + timedelta(days=i)
         buttons.append([
             InlineKeyboardButton(
                 d.strftime("%d.%m.%Y"),
-                callback_data=f"DATE:{d.isoformat()}"
+                callback_data=f"DATE:{d.isoformat()}",
             )
         ])
 
     return InlineKeyboardMarkup(buttons)
+
+def skip_keyboard():
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("⏭ Пропустить", callback_data="SKIP")]]
+    )
+
 
 def replace_everywhere(doc, data):
     for p in doc.paragraphs:
@@ -278,6 +292,24 @@ async def checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(QUESTIONS[next_field])
     return 0
 
+async def skip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.callback_query
+    await query.answer()
+
+    step = context.user_data["step"]
+    field = FIELDS[step]
+
+    context.user_data[field] = "-----"
+
+    step += 1
+    context.user_data["step"] = step
+
+    next_field = FIELDS[step]
+
+    await query.edit_message_text(QUESTIONS[next_field])
+    return 0
+
 
 async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -328,6 +360,14 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=checkout_keyboard(),
             )
             return 0
+
+        if next_field in ["CLIENT_ADDRESS", "CLIENT_MAIL"]:
+            await update.message.reply_text(
+                QUESTIONS[next_field],
+                reply_markup=skip_keyboard(),
+            )
+            return 0
+
 
         await update.message.reply_text(QUESTIONS[next_field])
         return 0
@@ -393,6 +433,7 @@ def main():
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer),
                 CallbackQueryHandler(date_callback, pattern="^DATE:"),
                 CallbackQueryHandler(checkout_callback, pattern="^CHECKOUT:"),
+                CallbackQueryHandler(skip_callback, pattern="^SKIP$"),
                 CommandHandler("back", back),
                 CommandHandler("status", status),
                 CommandHandler("stop", stop),
@@ -423,6 +464,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
