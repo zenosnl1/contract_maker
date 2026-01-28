@@ -88,7 +88,7 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return 0
 
     # иначе обычный переход
-   next_field = FIELDS[step]
+    next_field = FIELDS[step]
 
     if next_field == "END_DATE":
         await query.edit_message_text(
@@ -329,6 +329,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
