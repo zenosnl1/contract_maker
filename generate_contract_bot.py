@@ -402,7 +402,6 @@ def main():
             CommandHandler("cancel", stop),
         ],
         allow_reentry=True,
-        per_message=True,
     )
 
     app.add_handler(conv)
@@ -422,6 +421,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
