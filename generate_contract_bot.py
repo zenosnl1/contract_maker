@@ -669,9 +669,11 @@ def save_contract_to_db(data, files):
 
     r = requests.post(url, json=payload, headers=headers, timeout=10)
 
+    print("🟡 Supabase INSERT status:", r.status_code)
+    print("🟡 Supabase INSERT body:", r.text)
+    
     if r.status_code not in (200, 201):
-        print("❌ Supabase insert error:", r.status_code, r.text)
-
+        raise RuntimeError("Supabase insert failed")
 
 # ===== main =====
 
@@ -748,6 +750,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
