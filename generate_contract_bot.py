@@ -569,7 +569,7 @@ def fetch_active_contracts():
     r = requests.get(url, headers=headers, timeout=10)
     r.raise_for_status()
 
-    return r.json
+    return r.json()
 
 async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -674,11 +674,7 @@ def main():
     print("🌍 Webhook URL:", webhook_url)
 
     app = ApplicationBuilder().token(TOKEN).build()
-
-    app.add_handler(CommandHandler("stop", stop))
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("cancel", stop))
-
+    
     conv = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
@@ -726,6 +722,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
