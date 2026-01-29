@@ -74,6 +74,9 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     d = datetime.fromisoformat(iso)
 
     step = context.user_data["step"]
+    if step >= len(FIELDS):
+        return FILLING
+    
     field = FIELDS[step]
 
     # сохраняем дату
@@ -253,6 +256,9 @@ def build_stats_excel(rows):
 
     ws2 = wb.create_sheet("contracts")
 
+    if not rows:
+        return None
+
     headers = rows[0].keys()
     ws2.append(list(headers))
 
@@ -326,7 +332,11 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    rows = fetch_all_contracts()
+    try:
+        rows = fetch_active_contracts()
+    except Exception:
+        await query.edit_message_text("⚠️ Ошибка получения данных.")
+        return MENU
 
     if not rows:
         await query.edit_message_text("Пока нет договоров.")
@@ -348,7 +358,11 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    rows = fetch_active_contracts()
+    try:
+        rows = fetch_active_contracts()
+    except Exception:
+        await query.edit_message_text("⚠️ Ошибка получения данных.")
+        return MENU
 
     if not rows:
         await query.edit_message_text("Сейчас жильцов нет.")
@@ -428,9 +442,8 @@ async def skip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return FILLING
     
     await query.edit_message_text(QUESTIONS[next_field])
+    context.user_data.clear()
     return FILLING
-
-
 
 async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -730,6 +743,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
