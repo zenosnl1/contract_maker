@@ -90,7 +90,7 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📅 Выберите дату выезда:",
             reply_markup=date_keyboard(start_from=next_day),
         )
-        return 0
+        return FILLING
 
 
     # после END_DATE — просто спрашиваем следующий шаг (CHECKOUT_TIME)
@@ -101,10 +101,10 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "⏰ Выберите время выезда:",
             reply_markup=checkout_keyboard(),
         )
-        return 0
+        return FILLING
     
     await query.edit_message_text(QUESTIONS[next_field])
-    return 0
+    return FILLING
 
 
 
@@ -275,7 +275,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=start_keyboard(),
     )
 
-    return MENU
+    MENU
 
 
 
@@ -294,7 +294,7 @@ async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "Вы уже в начале. Введите значение или используйте /stop."
         )
-        return 0
+        return FILLING
 
     step -= 1
     context.user_data["step"] = step
@@ -305,12 +305,12 @@ async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⬅️ Возврат назад.\n\n{QUESTIONS[field]}"
     )
 
-    return 0
+    return FILLING
 
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data:
         await update.message.reply_text("Пока ничего не введено.")
-        return 0
+        return FILLING
 
     lines = ["📋 Текущие данные:"]
 
@@ -319,7 +319,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
             lines.append(f"• {f}: {context.user_data[f]}")
 
     await update.message.reply_text("\n".join(lines))
-    return 0
+    return FILLING
 
 async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -330,14 +330,14 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not rows:
         await query.edit_message_text("Пока нет договоров.")
-        return MENU
+        MENU
 
     path = build_stats_excel(rows)
 
     await query.message.reply_document(open(path, "rb"))
     await query.message.reply_text("📊 Статистика:", reply_markup=start_keyboard())
 
-    return MENU
+    MENU
 
 async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -348,7 +348,7 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not rows:
         await query.edit_message_text("Сейчас жильцов нет.")
-        return MENU
+        MENU
 
     lines = ["👥 Текущие жильцы:\n"]
 
@@ -364,7 +364,7 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text("\n".join(lines), reply_markup=start_keyboard())
 
-    return MENU
+    MENU
 
 async def start_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -399,7 +399,7 @@ async def checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     next_field = FIELDS[step]
 
     await query.edit_message_text(QUESTIONS[next_field])
-    return 0
+    return FILLING
 
 async def skip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -421,10 +421,10 @@ async def skip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             QUESTIONS[next_field],
             reply_markup=skip_keyboard(),
         )
-        return 0
+        return FILLING
     
     await query.edit_message_text(QUESTIONS[next_field])
-    return 0
+    return FILLING
 
 
 
@@ -442,14 +442,14 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(
                 "❌ Введите цену цифрами, например: 25"
             )
-            return 0
+            return FILLING
 
     if field == "DEPOSIT":
         if not text.isdigit():
             await update.message.reply_text(
                 "❌ Введите депозит цифрами, например: 80"
             )
-            return 0
+            return FILLING
 
     # ---------- СОХРАНЯЕМ ----------
 
@@ -487,31 +487,31 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "📅 Выберите дату заезда:",
                 reply_markup=date_keyboard(),
             )
-            return 0
+            return FILLING
 
         if next_field == "END_DATE":
             await update.message.reply_text(
                 "📅 Выберите дату выезда:",
                 reply_markup=date_keyboard(),
             )
-            return 0
+            return FILLING
 
         if next_field == "CHECKOUT_TIME":
             await update.message.reply_text(
                 "⏰ Выберите время выезда:",
                 reply_markup=checkout_keyboard(),
             )
-            return 0
+            return FILLING
 
         if next_field in ["CLIENT_ADDRESS", "CLIENT_MAIL"]:
             await update.message.reply_text(
                 QUESTIONS[next_field],
                 reply_markup=skip_keyboard(),
             )
-            return 0
+            return FILLING
 
         await update.message.reply_text(QUESTIONS[next_field])
-        return 0
+        return FILLING
 
     # ---------- ФИНАЛ: ГЕНЕРИРУЕМ ДОКУМЕНТЫ ----------
 
@@ -530,7 +530,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ])
     )
 
-    return CONFIRM_SAVE
+    CONFIRM_SAVE
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -589,7 +589,7 @@ async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=start_keyboard(),
     )
 
-    return MENU
+    MENU
 
 async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -604,7 +604,7 @@ async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=start_keyboard(),
     )
 
-    return MENU
+    MENU
 
 def save_contract_to_db(data, files):
 
@@ -722,6 +722,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
