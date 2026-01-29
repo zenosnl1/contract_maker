@@ -291,7 +291,7 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🛑 Процесс заполнения остановлен.",
         reply_markup=start_keyboard(),
     )
-    return MENU
+    return ConversationHandler.END
 
 async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data.get("step", 0)
@@ -333,7 +333,7 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     try:
-        rows = fetch_active_contracts()
+        rows = fetch_all_contracts()
     except Exception:
         await query.edit_message_text("⚠️ Ошибка получения данных.")
         return MENU
@@ -344,8 +344,10 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     path = build_stats_excel(rows)
 
-    await query.edit_message_text("📊 Формирую статистику…")
+    await query.edit_message_text("📊 Формирую статистику…", reply_markup=None)
+
     await query.message.reply_document(open(path, "rb"))
+    
     await query.message.reply_text(
         "Главное меню:",
         reply_markup=start_keyboard(),
@@ -380,7 +382,12 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "—"
         )
 
-    await query.edit_message_text("\n".join(lines), reply_markup=start_keyboard())
+    await query.edit_message_text("\n".join(lines), reply_markup=None)
+
+    await query.message.reply_text(
+        "Главное меню:",
+        reply_markup=start_keyboard(),
+    )
 
     return MENU
 
@@ -442,7 +449,6 @@ async def skip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return FILLING
     
     await query.edit_message_text(QUESTIONS[next_field])
-    context.user_data.clear()
     return FILLING
 
 async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -601,12 +607,11 @@ async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for f in context.user_data["_generated_files"]:
         await query.message.reply_document(open(f, "rb"))
 
-    await query.edit_message_text("💾 Сохранено.")
+    await query.edit_message_text("💾 Сохранено.", reply_markup=None)
     await query.message.reply_text(
         "Главное меню:",
         reply_markup=start_keyboard(),
     )
-
 
     return MENU
 
@@ -743,6 +748,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
