@@ -334,8 +334,12 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     path = build_stats_excel(rows)
 
+    await query.edit_message_text("📊 Формирую статистику…")
     await query.message.reply_document(open(path, "rb"))
-    await query.message.reply_text("📊 Статистика:", reply_markup=start_keyboard())
+    await query.message.reply_text(
+        "Главное меню:",
+        reply_markup=start_keyboard(),
+    )
 
     return MENU
 
@@ -584,10 +588,12 @@ async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for f in context.user_data["_generated_files"]:
         await query.message.reply_document(open(f, "rb"))
 
+    await query.edit_message_text("💾 Сохранено.")
     await query.message.reply_text(
-        "💾 Сохранено.\n\nГлавное меню:",
+        "Главное меню:",
         reply_markup=start_keyboard(),
     )
+
 
     return MENU
 
@@ -599,8 +605,9 @@ async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for f in context.user_data["_generated_files"]:
         await query.message.reply_document(open(f, "rb"))
 
+    await query.edit_message_text("Не Сохранено.")
     await query.message.reply_text(
-        "❌ Не сохранено.\n\nГлавное меню:",
+        "Главное меню:",
         reply_markup=start_keyboard(),
     )
 
@@ -702,6 +709,7 @@ def main():
         ],
     },
     fallbacks=[CommandHandler("stop", stop)],
+    allow_reentry=True,
 )
 
 
@@ -722,6 +730,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
