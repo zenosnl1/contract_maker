@@ -356,9 +356,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
 
     # ---- ВАЛИДАЦИЯ ----
-
     if field == "PRICE_PER_DAY":
-
         if not text.isdigit():
             await update.message.reply_text(
                 "❌ Введите цену цифрами, например: 25"
@@ -366,13 +364,18 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return 0
 
     # ---- СОХРАНЕНИЕ ----
-
     context.user_data[field] = text
 
+    # ---- ПЕРЕХОД К СЛЕДУЮЩЕМУ ПОЛЮ ----
+    step += 1
+    context.user_data["step"] = step
+
+    # ---- ЕСЛИ ЕЩЁ НЕ ВСЁ ----
     if step < len(FIELDS):
 
         next_field = FIELDS[step]
 
+        # даты
         if next_field == "START_DATE":
             await update.message.reply_text(
                 "📅 Выберите дату заезда:",
@@ -387,6 +390,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return 0
 
+        # время выезда
         if next_field == "CHECKOUT_TIME":
             await update.message.reply_text(
                 "⏰ Выберите время выезда:",
@@ -394,6 +398,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return 0
 
+        # skip поля
         if next_field in ["CLIENT_ADDRESS", "CLIENT_MAIL"]:
             await update.message.reply_text(
                 QUESTIONS[next_field],
@@ -401,9 +406,11 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return 0
 
-
+        # обычный текст
         await update.message.reply_text(QUESTIONS[next_field])
         return 0
+
+    # ---- ГЕНЕРАЦИЯ ----
 
     files = generate_docs(context.user_data)
 
@@ -497,6 +504,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
