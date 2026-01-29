@@ -5,7 +5,7 @@ import http.server
 import socketserver
 import os
 import asyncio
-import psycopg2
+import requests
 from telegram.ext import ApplicationBuilder
 from telegram import Update
 from telegram.ext import (
@@ -230,77 +230,6 @@ def generate_docs(data):
     return outputs
 
 
-def save_contract_to_db(data, files):
-
-    conn = psycopg2.connect(
-        host=os.environ["DB_HOST"],
-        dbname=os.environ["DB_NAME"],
-        user=os.environ["DB_USER"],
-        password=os.environ["DB_PASSWORD"],
-        port=os.environ["DB_PORT"],
-    )
-
-    cur = conn.cursor()
-
-    start = datetime.strptime(data["START_DATE"], "%d.%m.%Y").date()
-    end = datetime.strptime(data["END_DATE"], "%d.%m.%Y").date()
-
-    nights = (end - start).days
-
-    cur.execute("""
-        insert into contracts (
-            contract_number,
-            flat_number,
-
-            client_name,
-            client_id,
-            client_address,
-            client_mail,
-            client_number,
-
-            start_date,
-            end_date,
-            nights,
-
-            price_per_day,
-            total_price,
-            deposit,
-
-            checkout_time,
-
-            contract_file,
-            act_file
-        )
-        values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        data.get("CONTRACT_NUMBER"),
-        data.get("FLAT_NUMBER"),
-
-        data.get("CLIENT_NAME"),
-        data.get("CLIENT_ID"),
-        data.get("CLIENT_ADDRESS"),
-        data.get("CLIENT_MAIL"),
-        data.get("CLIENT_NUMBER"),
-
-        start,
-        end,
-        nights,
-
-        int(data["PRICE_PER_DAY"]),
-        int(data["TOTAL_PRICE"]),
-        int(data["DEPOSIT"]),
-
-        data["CHECKOUT_TIME"],
-
-        files[0],
-        files[1],
-    ))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-
 # ===== Telegram flow =====
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -500,7 +429,6 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ---- ГЕНЕРАЦИЯ ----
 
     files = generate_docs(context.user_data)
-    save_contract_to_db(context.user_data, files)
 
     for f in files:
         await update.message.reply_document(document=open(f, "rb"))
@@ -518,6 +446,51 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"OK")
+
+def save_contract_to_db(data, files):
+
+    url = os.environ["SUPABASE_URL"] + "/rest/v1/contracts"
+
+    headers = {
+        "apikey": os.environ["SUPABASE_KEY"],
+        "Authorization": f"Bearer {os.environ['SUPABASE_KEY']}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+
+    start = datetime.strptime(data["START_DATE"], "%d.%m.%Y")
+    end = datetime.strptime(data["END_DATE"], "%d.%m.%Y")
+
+    nights = (end - start).days
+
+    payload = {
+        "contract_number": data.get("CONTRACT_NUMBER"),
+        "flat_number": data.get("FLAT_NUMBER"),
+
+        "client_name": data.get("CLIENT_NAME"),
+        "client_id": data.get("CLIENT_ID"),
+        "client_address": data.get("CLIENT_ADDRESS"),
+        "client_mail": data.get("CLIENT_MAIL"),
+        "client_number": data.get("CLIENT_NUMBER"),
+
+        "start_date": start.strftime("%Y-%m-%d"),
+        "end_date": end.strftime("%Y-%m-%d"),
+        "nights": nights,
+
+        "price_per_day": int(data["PRICE_PER_DAY"]),
+        "total_price": int(data["TOTAL_PRICE"]),
+        "deposit": int(data["DEPOSIT"]),
+
+        "checkout_time": data["CHECKOUT_TIME"],
+
+        "contract_file": files[0],
+        "act_file": files[1],
+    }
+
+    r = requests.post(url, json=payload, headers=headers, timeout=10)
+
+    if r.status_code not in (200, 201):
+        print("❌ Supabase insert error:", r.status_code, r.text)
 
 
 # ===== main =====
@@ -592,6 +565,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
