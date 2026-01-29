@@ -489,9 +489,6 @@ def save_contract_to_db(data, files):
         "deposit": int(data["DEPOSIT"]),
 
         "checkout_time": data["CHECKOUT_TIME"],
-
-        "contract_file": files[0],
-        "act_file": files[1],
     }
 
     r = requests.post(url, json=payload, headers=headers, timeout=10)
@@ -572,6 +569,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
