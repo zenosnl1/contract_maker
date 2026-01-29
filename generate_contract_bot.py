@@ -504,9 +504,14 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ---------- ФИНАЛ ----------
 
-    files = generate_docs(context.user_data)
+    await update.message.reply_text(
+        "📌 Договор сформирован. Сохранить его в базе данных?",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("💾 Да", callback_data="SAVE_DB")],
+            [InlineKeyboardButton("❌ Нет", callback_data="SKIP_DB")]
+        ])
+    )
 
-    save_contract_to_db(context.user_data, files)
 
     for f in files:
         await update.message.reply_document(open(f, "rb"))
@@ -556,7 +561,28 @@ def fetch_active_contracts():
     r = requests.get(url, headers=headers, timeout=10)
     r.raise_for_status()
 
-    return r.json()
+    return r.json
+
+async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.callback_query
+    await query.answer()
+
+    files = context.user_data.get("_generated_files")
+    data = context.user_data
+
+    save_contract_to_db(data, files)
+
+    await query.edit_message_text("💾 Договор сохранён в базе данных.")
+    # потом можно показать стартовое меню
+
+async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text("❌ Сохранение в БД отменено.")
+
 
 def save_contract_to_db(data, files):
 
@@ -644,6 +670,8 @@ def main():
                 CallbackQueryHandler(skip_callback, pattern="^SKIP$"),
                 CallbackQueryHandler(stats_callback, pattern="^MENU_STATS$"),
                 CallbackQueryHandler(active_callback, pattern="^MENU_ACTIVE$"),
+                CallbackQueryHandler(save_db_callback, pattern="^SAVE_DB$"),
+                CallbackQueryHandler(skip_db_callback, pattern="^SKIP_DB$"),
                 CommandHandler("back", back),
                 CommandHandler("status", status),
                 CommandHandler("stop", stop),
@@ -674,6 +702,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
