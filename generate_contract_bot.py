@@ -275,7 +275,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=start_keyboard(),
     )
 
-    MENU
+    return MENU
 
 
 
@@ -285,7 +285,7 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🛑 Процесс заполнения остановлен.",
         reply_markup=start_keyboard(),
     )
-    return ConversationHandler.END
+    return MENU
 
 async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data.get("step", 0)
@@ -330,14 +330,14 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not rows:
         await query.edit_message_text("Пока нет договоров.")
-        MENU
+        return MENU
 
     path = build_stats_excel(rows)
 
     await query.message.reply_document(open(path, "rb"))
     await query.message.reply_text("📊 Статистика:", reply_markup=start_keyboard())
 
-    MENU
+    return MENU
 
 async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -348,7 +348,7 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not rows:
         await query.edit_message_text("Сейчас жильцов нет.")
-        MENU
+        return MENU
 
     lines = ["👥 Текущие жильцы:\n"]
 
@@ -364,7 +364,7 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text("\n".join(lines), reply_markup=start_keyboard())
 
-    MENU
+    return MENU
 
 async def start_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -530,7 +530,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ])
     )
 
-    CONFIRM_SAVE
+    return CONFIRM_SAVE
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -589,7 +589,7 @@ async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=start_keyboard(),
     )
 
-    MENU
+    return MENU
 
 async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -604,7 +604,7 @@ async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=start_keyboard(),
     )
 
-    MENU
+    return MENU
 
 def save_contract_to_db(data, files):
 
@@ -722,6 +722,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
