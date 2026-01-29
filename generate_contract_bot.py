@@ -27,6 +27,10 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 TOKEN = os.environ["BOT_TOKEN"]
 
+MENU = 0
+FILLING = 1
+CONFIRM_SAVE = 2
+
 CONTRACT_TEMPLATE = "template_contract.docx"
 ACT_TEMPLATE = "template_act.docx"
 
@@ -267,12 +271,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
 
     await update.message.reply_text(
-        "👋 Добро пожаловать!\n\n"
-        "Нажмите кнопку ниже, чтобы начать оформление договора.",
+        "👋 Главное меню:",
         reply_markup=start_keyboard(),
     )
 
-    return 0
+    return MENU
+
 
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -326,11 +330,14 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not rows:
         await query.edit_message_text("Пока нет договоров.")
-        return
+        return MENU
 
     path = build_stats_excel(rows)
 
     await query.message.reply_document(open(path, "rb"))
+    await query.message.reply_text("📊 Статистика:", reply_markup=start_keyboard())
+
+    return MENU
 
 async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -341,7 +348,7 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not rows:
         await query.edit_message_text("Сейчас жильцов нет.")
-        return
+        return MENU
 
     lines = ["👥 Текущие жильцы:\n"]
 
@@ -355,7 +362,9 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "—"
         )
 
-    await query.edit_message_text("\n".join(lines))
+    await query.edit_message_text("\n".join(lines), reply_markup=start_keyboard())
+
+    return MENU
 
 async def start_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -370,7 +379,7 @@ async def start_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         + QUESTIONS[FIELDS[0]]
     )
 
-    return 0
+    return FILLING
 
 async def checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -504,25 +513,23 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ---------- ФИНАЛ ----------
 
+    files = generate_docs(context.user_data)
+    
+    context.user_data["_generated_files"] = files
+    
     await update.message.reply_text(
-        "📌 Договор сформирован. Сохранить его в базе данных?",
+        "📄 Документы готовы.\n\n"
+        "Сохранить договор в базе данных?",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("💾 Да", callback_data="SAVE_DB")],
-            [InlineKeyboardButton("❌ Нет", callback_data="SKIP_DB")]
+            [
+                InlineKeyboardButton("💾 Да", callback_data="SAVE_DB"),
+                InlineKeyboardButton("❌ Нет", callback_data="SKIP_DB"),
+            ]
         ])
     )
+    
+    return CONFIRM_SAVE
 
-
-    for f in files:
-        await update.message.reply_document(open(f, "rb"))
-
-    await update.message.reply_text(
-        "✅ Готово! Договор и акт сформированы.\n\n"
-        "Можете оформить следующий договор:",
-        reply_markup=start_keyboard(),
-    )
-
-    return ConversationHandler.END
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -568,21 +575,35 @@ async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    files = context.user_data.get("_generated_files")
-    data = context.user_data
+    save_contract_to_db(
+        context.user_data,
+        context.user_data["_generated_files"],
+    )
 
-    save_contract_to_db(data, files)
+    for f in context.user_data["_generated_files"]:
+        await query.message.reply_document(open(f, "rb"))
 
-    await query.edit_message_text("💾 Договор сохранён в базе данных.")
-    # потом можно показать стартовое меню
+    await query.message.reply_text(
+        "💾 Сохранено.\n\nГлавное меню:",
+        reply_markup=start_keyboard(),
+    )
+
+    return MENU
 
 async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     query = update.callback_query
     await query.answer()
 
-    await query.edit_message_text("❌ Сохранение в БД отменено.")
+    for f in context.user_data["_generated_files"]:
+        await query.message.reply_document(open(f, "rb"))
 
+    await query.message.reply_text(
+        "❌ Не сохранено.\n\nГлавное меню:",
+        reply_markup=start_keyboard(),
+    )
+
+    return MENU
 
 def save_contract_to_db(data, files):
 
@@ -658,32 +679,34 @@ def main():
     app.add_handler(CommandHandler("cancel", stop))
 
     conv = ConversationHandler(
-        entry_points=[
-            CommandHandler("start", start),
+    entry_points=[CommandHandler("start", start)],
+    states={
+        MENU: [
             CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"),
+            CallbackQueryHandler(stats_callback, pattern="^MENU_STATS$"),
+            CallbackQueryHandler(active_callback, pattern="^MENU_ACTIVE$"),
         ],
-        states={
-            0: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer),
-                CallbackQueryHandler(date_callback, pattern="^DATE:"),
-                CallbackQueryHandler(checkout_callback, pattern="^CHECKOUT:"),
-                CallbackQueryHandler(skip_callback, pattern="^SKIP$"),
-                CallbackQueryHandler(stats_callback, pattern="^MENU_STATS$"),
-                CallbackQueryHandler(active_callback, pattern="^MENU_ACTIVE$"),
-                CallbackQueryHandler(save_db_callback, pattern="^SAVE_DB$"),
-                CallbackQueryHandler(skip_db_callback, pattern="^SKIP_DB$"),
-                CommandHandler("back", back),
-                CommandHandler("status", status),
-                CommandHandler("stop", stop),
-                CommandHandler("cancel", stop),
-            ]
-        },
-        fallbacks=[
+
+        FILLING: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer),
+
+            CallbackQueryHandler(date_callback, pattern="^DATE:"),
+            CallbackQueryHandler(checkout_callback, pattern="^CHECKOUT:"),
+            CallbackQueryHandler(skip_callback, pattern="^SKIP$"),
+
+            CommandHandler("back", back),
+            CommandHandler("status", status),
             CommandHandler("stop", stop),
-            CommandHandler("cancel", stop),
         ],
-        allow_reentry=True,
-    )
+
+        CONFIRM_SAVE: [
+            CallbackQueryHandler(save_db_callback, pattern="^SAVE_DB$"),
+            CallbackQueryHandler(skip_db_callback, pattern="^SKIP_DB$"),
+        ],
+    },
+    fallbacks=[CommandHandler("stop", stop)],
+)
+
 
     app.add_handler(conv)
 
@@ -702,6 +725,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
