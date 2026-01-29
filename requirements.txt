@@ -1,3 +1,5 @@
 python-telegram-bot[webhooks]==20.7
 python-docx
+psycopg2-binary
+
 
