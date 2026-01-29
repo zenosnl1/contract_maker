@@ -6,6 +6,7 @@ import socketserver
 import os
 import asyncio
 import requests
+from openpyxl import Workbook
 from telegram.ext import ApplicationBuilder
 from telegram import Update
 from telegram.ext import (
@@ -118,9 +119,11 @@ def checkout_keyboard():
     return InlineKeyboardMarkup(buttons)
 
 def start_keyboard():
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("▶️ Начать оформление", callback_data="START_FLOW")]]
-    )
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("▶️ Начать оформление", callback_data="START_FLOW")],
+        [InlineKeyboardButton("📊 Статистика", callback_data="MENU_STATS")],
+        [InlineKeyboardButton("👥 Текущие жильцы", callback_data="MENU_ACTIVE")],
+    ])
 
 def date_keyboard(days=30, start_from=None):
 
@@ -229,6 +232,33 @@ def generate_docs(data):
 
     return outputs
 
+def build_stats_excel(rows):
+
+    wb = Workbook()
+
+    ws1 = wb.active
+    ws1.title = "summary"
+
+    total_income = sum(r["total_price"] for r in rows)
+    total_nights = sum(r["nights"] for r in rows)
+    first_date = min(r["start_date"] for r in rows)
+
+    ws1.append(["Total income", total_income])
+    ws1.append(["Total nights", total_nights])
+    ws1.append(["First contract", first_date])
+
+    ws2 = wb.create_sheet("contracts")
+
+    headers = rows[0].keys()
+    ws2.append(list(headers))
+
+    for r in rows:
+        ws2.append(list(r.values()))
+
+    path = "/tmp/contracts_stats.xlsx"
+    wb.save(path)
+
+    return path
 
 # ===== Telegram flow =====
 
@@ -286,6 +316,46 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("\n".join(lines))
     return 0
+
+async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.callback_query
+    await query.answer()
+
+    rows = fetch_all_contracts()
+
+    if not rows:
+        await query.edit_message_text("Пока нет договоров.")
+        return
+
+    path = build_stats_excel(rows)
+
+    await query.message.reply_document(open(path, "rb"))
+
+async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.callback_query
+    await query.answer()
+
+    rows = fetch_active_contracts()
+
+    if not rows:
+        await query.edit_message_text("Сейчас жильцов нет.")
+        return
+
+    lines = ["👥 Текущие жильцы:\n"]
+
+    for r in rows:
+        lines.append(
+            f"🏠 {r['flat_number']}\n"
+            f"👤 {r['client_name']}\n"
+            f"📞 {r['client_number']}\n"
+            f"📅 {r['start_date']} → {r['end_date']}\n"
+            f"💶 {r['total_price']} €\n"
+            "—"
+        )
+
+    await query.edit_message_text("\n".join(lines))
 
 async def start_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -455,6 +525,39 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"OK")
 
+def fetch_all_contracts():
+
+    url = os.environ["SUPABASE_URL"] + "/rest/v1/contracts?select=*"
+
+    headers = {
+        "apikey": os.environ["SUPABASE_KEY"],
+        "Authorization": f"Bearer {os.environ['SUPABASE_KEY']}",
+    }
+
+    r = requests.get(url, headers=headers, timeout=10)
+    r.raise_for_status()
+
+    return r.json()
+
+def fetch_active_contracts():
+
+    today = date.today().isoformat()
+
+    url = (
+        os.environ["SUPABASE_URL"]
+        + f"/rest/v1/contracts?start_date=lte.{today}&end_date=gt.{today}"
+    )
+
+    headers = {
+        "apikey": os.environ["SUPABASE_KEY"],
+        "Authorization": f"Bearer {os.environ['SUPABASE_KEY']}",
+    }
+
+    r = requests.get(url, headers=headers, timeout=10)
+    r.raise_for_status()
+
+    return r.json()
+
 def save_contract_to_db(data, files):
 
     url = os.environ["SUPABASE_URL"] + "/rest/v1/contracts"
@@ -539,6 +642,8 @@ def main():
                 CallbackQueryHandler(date_callback, pattern="^DATE:"),
                 CallbackQueryHandler(checkout_callback, pattern="^CHECKOUT:"),
                 CallbackQueryHandler(skip_callback, pattern="^SKIP$"),
+                CallbackQueryHandler(stats_callback, pattern="^MENU_STATS$"),
+                CallbackQueryHandler(active_callback, pattern="^MENU_ACTIVE$"),
                 CommandHandler("back", back),
                 CommandHandler("status", status),
                 CommandHandler("stop", stop),
@@ -569,6 +674,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
