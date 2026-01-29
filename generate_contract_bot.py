@@ -429,6 +429,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ---- ГЕНЕРАЦИЯ ----
 
     files = generate_docs(context.user_data)
+    save_contract_to_db(context.user_data, files)
 
     for f in files:
         await update.message.reply_document(document=open(f, "rb"))
@@ -565,6 +566,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
