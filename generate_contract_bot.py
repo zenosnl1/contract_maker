@@ -18,6 +18,10 @@ from telegram.ext import (
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackQueryHandler
 from datetime import date, timedelta, datetime
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+
 
 TOKEN = os.environ["BOT_TOKEN"]
 
@@ -181,6 +185,30 @@ def process_paragraph(p, data):
             i += 1
 
 
+def add_page_numbers(doc):
+
+    section = doc.sections[0]
+    footer = section.footer
+
+    p = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    run = p.add_run()
+
+    fldChar1 = OxmlElement('w:fldChar')
+    fldChar1.set(qn('w:fldCharType'), 'begin')
+
+    instrText = OxmlElement('w:instrText')
+    instrText.text = "PAGE"
+
+    fldChar2 = OxmlElement('w:fldChar')
+    fldChar2.set(qn('w:fldCharType'), 'end')
+
+    run._r.append(fldChar1)
+    run._r.append(instrText)
+    run._r.append(fldChar2)
+
+
 def generate_docs(data):
     safe = data["CLIENT_NAME"].replace(" ", "_")
 
@@ -192,6 +220,7 @@ def generate_docs(data):
     ]:
         doc = Document(tpl)
         replace_everywhere(doc, data)
+        add_page_numbers(doc)
 
         fname = f"{prefix}_{safe}.docx"
         doc.save(fname)
@@ -472,6 +501,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
