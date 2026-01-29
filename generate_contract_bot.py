@@ -356,7 +356,8 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = update.message.text.strip()
 
-    # ---- ВАЛИДАЦИЯ ----
+    # ---------- ВАЛИДАЦИЯ ----------
+
     if field == "PRICE_PER_DAY":
         if not text.isdigit():
             await update.message.reply_text(
@@ -364,34 +365,26 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return 0
 
-    # ---- СОХРАНЕНИЕ ----
+    if field == "DEPOSIT":
+        if not text.isdigit():
+            await update.message.reply_text(
+                "❌ Введите депозит цифрами, например: 80"
+            )
+            return 0
+
+    # ---------- СОХРАНЯЕМ ----------
+
     context.user_data[field] = text
 
-        # ---- АВТОРАСЧЁТ СУММЫ ----
-    if field == "PRICE_PER_DAY":
-
-        start = datetime.strptime(context.user_data["START_DATE"], "%d.%m.%Y")
-        end = datetime.strptime(context.user_data["END_DATE"], "%d.%m.%Y")
-
-        nights = (end - start).days
-        price = int(text)
-
-        context.user_data["TOTAL_PRICE"] = str(nights * price)
-
-        await update.message.reply_text(
-            f"💶 {nights} ночей × {price} € = {nights * price} €"
-        )
-
-    # ---- ПЕРЕХОД К СЛЕДУЮЩЕМУ ПОЛЮ ----
+    # ---------- ДВИГАЕМСЯ ВПЕРЁД ----------
     step += 1
     context.user_data["step"] = step
 
-    # ---- ЕСЛИ ЕЩЁ НЕ ВСЁ ----
+    # ---------- ЕСЛИ ЕСТЬ СЛЕДУЮЩИЙ ШАГ ----------
     if step < len(FIELDS):
 
         next_field = FIELDS[step]
 
-        # даты
         if next_field == "START_DATE":
             await update.message.reply_text(
                 "📅 Выберите дату заезда:",
@@ -406,7 +399,6 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return 0
 
-        # время выезда
         if next_field == "CHECKOUT_TIME":
             await update.message.reply_text(
                 "⏰ Выберите время выезда:",
@@ -414,7 +406,6 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return 0
 
-        # skip поля
         if next_field in ["CLIENT_ADDRESS", "CLIENT_MAIL"]:
             await update.message.reply_text(
                 QUESTIONS[next_field],
@@ -422,17 +413,17 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return 0
 
-        # обычный текст
         await update.message.reply_text(QUESTIONS[next_field])
         return 0
 
-    # ---- ГЕНЕРАЦИЯ ----
+    # ---------- ФИНАЛ ----------
 
     files = generate_docs(context.user_data)
+
     save_contract_to_db(context.user_data, files)
 
     for f in files:
-        await update.message.reply_document(document=open(f, "rb"))
+        await update.message.reply_document(open(f, "rb"))
 
     await update.message.reply_text(
         "✅ Готово! Договор и акт сформированы.\n\n"
@@ -566,6 +557,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
