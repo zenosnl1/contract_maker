@@ -366,6 +366,21 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ---- СОХРАНЕНИЕ ----
     context.user_data[field] = text
 
+        # ---- АВТОРАСЧЁТ СУММЫ ----
+    if field == "PRICE_PER_DAY":
+
+        start = datetime.strptime(context.user_data["START_DATE"], "%d.%m.%Y")
+        end = datetime.strptime(context.user_data["END_DATE"], "%d.%m.%Y")
+
+        nights = (end - start).days
+        price = int(text)
+
+        context.user_data["TOTAL_PRICE"] = str(nights * price)
+
+        await update.message.reply_text(
+            f"💶 {nights} ночей × {price} € = {nights * price} €"
+        )
+
     # ---- ПЕРЕХОД К СЛЕДУЮЩЕМУ ПОЛЮ ----
     step += 1
     context.user_data["step"] = step
@@ -504,6 +519,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
