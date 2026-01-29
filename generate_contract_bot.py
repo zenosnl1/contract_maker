@@ -732,7 +732,6 @@ def main():
         allow_reentry=True,
     )
 
-    app.add_handler(CommandHandler("start", start))
     app.add_handler(conv)
 
     # 🚀 Самый стабильный запуск webhook
@@ -750,6 +749,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
