@@ -5,6 +5,7 @@ import http.server
 import socketserver
 import os
 import asyncio
+import psycopg2
 from telegram.ext import ApplicationBuilder
 from telegram import Update
 from telegram.ext import (
@@ -229,6 +230,77 @@ def generate_docs(data):
     return outputs
 
 
+def save_contract_to_db(data, files):
+
+    conn = psycopg2.connect(
+        host=os.environ["DB_HOST"],
+        dbname=os.environ["DB_NAME"],
+        user=os.environ["DB_USER"],
+        password=os.environ["DB_PASSWORD"],
+        port=os.environ["DB_PORT"],
+    )
+
+    cur = conn.cursor()
+
+    start = datetime.strptime(data["START_DATE"], "%d.%m.%Y").date()
+    end = datetime.strptime(data["END_DATE"], "%d.%m.%Y").date()
+
+    nights = (end - start).days
+
+    cur.execute("""
+        insert into contracts (
+            contract_number,
+            flat_number,
+
+            client_name,
+            client_id,
+            client_address,
+            client_mail,
+            client_number,
+
+            start_date,
+            end_date,
+            nights,
+
+            price_per_day,
+            total_price,
+            deposit,
+
+            checkout_time,
+
+            contract_file,
+            act_file
+        )
+        values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+    """, (
+        data.get("CONTRACT_NUMBER"),
+        data.get("FLAT_NUMBER"),
+
+        data.get("CLIENT_NAME"),
+        data.get("CLIENT_ID"),
+        data.get("CLIENT_ADDRESS"),
+        data.get("CLIENT_MAIL"),
+        data.get("CLIENT_NUMBER"),
+
+        start,
+        end,
+        nights,
+
+        int(data["PRICE_PER_DAY"]),
+        int(data["TOTAL_PRICE"]),
+        int(data["DEPOSIT"]),
+
+        data["CHECKOUT_TIME"],
+
+        files[0],
+        files[1],
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
 # ===== Telegram flow =====
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -428,6 +500,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ---- ГЕНЕРАЦИЯ ----
 
     files = generate_docs(context.user_data)
+    save_contract_to_db(context.user_data, files)
 
     for f in files:
         await update.message.reply_document(document=open(f, "rb"))
@@ -519,6 +592,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
