@@ -455,27 +455,29 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data[field] = text
 
-    # ---- АВТОРАСЧЁТ СУММЫ ----
+    # ---------- АВТОРАСЧЁТ СУММЫ ----------
+
     if field == "PRICE_PER_DAY":
-    
+
         start = datetime.strptime(context.user_data["START_DATE"], "%d.%m.%Y")
         end = datetime.strptime(context.user_data["END_DATE"], "%d.%m.%Y")
-    
+
         nights = (end - start).days
         total = nights * int(text)
-    
+
         context.user_data["TOTAL_PRICE"] = str(total)
-    
+
         await update.message.reply_text(
             f"💶 {nights} ночей × {text} € = {total} €"
         )
 
-
     # ---------- ДВИГАЕМСЯ ВПЕРЁД ----------
+
     step += 1
     context.user_data["step"] = step
 
     # ---------- ЕСЛИ ЕСТЬ СЛЕДУЮЩИЙ ШАГ ----------
+
     if step < len(FIELDS):
 
         next_field = FIELDS[step]
@@ -511,12 +513,12 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(QUESTIONS[next_field])
         return 0
 
-    # ---------- ФИНАЛ ----------
+    # ---------- ФИНАЛ: ГЕНЕРИРУЕМ ДОКУМЕНТЫ ----------
 
     files = generate_docs(context.user_data)
-    
+
     context.user_data["_generated_files"] = files
-    
+
     await update.message.reply_text(
         "📄 Документы готовы.\n\n"
         "Сохранить договор в базе данных?",
@@ -527,9 +529,8 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
         ])
     )
-    
-    return CONFIRM_SAVE
 
+    return CONFIRM_SAVE
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -725,6 +726,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
