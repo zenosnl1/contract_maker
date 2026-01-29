@@ -353,37 +353,21 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data["step"]
     field = FIELDS[step]
 
-    # валидация цены
+    text = update.message.text.strip()
+
+    # ---- ВАЛИДАЦИЯ ----
+
     if field == "PRICE_PER_DAY":
-    
-        val = update.message.text.strip()
-    
-        if not val.isdigit():
+
+        if not text.isdigit():
             await update.message.reply_text(
                 "❌ Введите цену цифрами, например: 25"
             )
             return 0
-    
-        context.user_data[field] = val
 
+    # ---- СОХРАНЕНИЕ ----
 
-    # если только что ввели цену — считаем сумму
-    if field == "PRICE_PER_DAY":
-
-        start = datetime.strptime(context.user_data["START_DATE"], "%d.%m.%Y")
-        end = datetime.strptime(context.user_data["END_DATE"], "%d.%m.%Y")
-
-        nights = (end - start).days
-        price = int(context.user_data["PRICE_PER_DAY"])
-
-        context.user_data["TOTAL_PRICE"] = str(nights * price)
-
-        await update.message.reply_text(
-            f"💶 {nights} ночей × {price} € = {nights * price} €"
-        )
-
-    step += 1
-    context.user_data["step"] = step
+    context.user_data[field] = text
 
     if step < len(FIELDS):
 
@@ -513,6 +497,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
