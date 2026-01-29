@@ -291,7 +291,7 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🛑 Процесс заполнения остановлен.",
         reply_markup=start_keyboard(),
     )
-    return ConversationHandler.END
+    return MENU
 
 async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data.get("step", 0)
@@ -335,11 +335,11 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         rows = fetch_all_contracts()
     except Exception:
-        await query.edit_message_text("⚠️ Ошибка получения данных.")
+        await query.edit_message_text("⚠️ Ошибка получения данных.", reply_markup=None)
         return MENU
 
     if not rows:
-        await query.edit_message_text("Пока нет договоров.")
+        await query.edit_message_text("Пока нет договоров.", reply_markup=None)
         return MENU
 
     path = build_stats_excel(rows)
@@ -363,11 +363,11 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         rows = fetch_active_contracts()
     except Exception:
-        await query.edit_message_text("⚠️ Ошибка получения данных.")
+        await query.edit_message_text("⚠️ Ошибка получения данных.", reply_markup=None)
         return MENU
 
     if not rows:
-        await query.edit_message_text("Сейчас жильцов нет.")
+        await query.edit_message_text("Сейчас жильцов нет.", reply_markup=None)
         return MENU
 
     lines = ["👥 Текущие жильцы:\n"]
@@ -402,7 +402,7 @@ async def start_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.edit_message_text(
         "📄 Начинаем создание договора.\n\n"
         + QUESTIONS[FIELDS[0]]
-    )
+    , reply_markup=None)
 
     return FILLING
 
@@ -423,7 +423,7 @@ async def checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     next_field = FIELDS[step]
 
-    await query.edit_message_text(QUESTIONS[next_field])
+    await query.edit_message_text(QUESTIONS[next_field], reply_markup=None)
     return FILLING
 
 async def skip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -448,7 +448,7 @@ async def skip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return FILLING
     
-    await query.edit_message_text(QUESTIONS[next_field])
+    await query.edit_message_text(QUESTIONS[next_field], reply_markup=None)
     return FILLING
 
 async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -623,7 +623,7 @@ async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for f in context.user_data["_generated_files"]:
         await query.message.reply_document(open(f, "rb"))
 
-    await query.edit_message_text("Не Сохранено.")
+    await query.edit_message_text("Не Сохранено.", reply_markup=None)
     await query.message.reply_text(
         "Главное меню:",
         reply_markup=start_keyboard(),
@@ -703,36 +703,36 @@ def main():
     app = ApplicationBuilder().token(TOKEN).build()
     
     conv = ConversationHandler(
-    entry_points=[CommandHandler("start", start)],
-    states={
-        MENU: [
-            CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"),
-            CallbackQueryHandler(stats_callback, pattern="^MENU_STATS$"),
-            CallbackQueryHandler(active_callback, pattern="^MENU_ACTIVE$"),
-        ],
+        entry_points=[CommandHandler("start", start)],
+        states={
+            MENU: [
+                CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"),
+                CallbackQueryHandler(stats_callback, pattern="^MENU_STATS$"),
+                CallbackQueryHandler(active_callback, pattern="^MENU_ACTIVE$"),
+            ],
+    
+            FILLING: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer),
+    
+                CallbackQueryHandler(date_callback, pattern="^DATE:"),
+                CallbackQueryHandler(checkout_callback, pattern="^CHECKOUT:"),
+                CallbackQueryHandler(skip_callback, pattern="^SKIP$"),
+    
+                CommandHandler("back", back),
+                CommandHandler("status", status),
+                CommandHandler("stop", stop),
+            ],
+    
+            CONFIRM_SAVE: [
+                CallbackQueryHandler(save_db_callback, pattern="^SAVE_DB$"),
+                CallbackQueryHandler(skip_db_callback, pattern="^SKIP_DB$"),
+            ],
+        },
+        fallbacks=[CommandHandler("stop", stop)],
+        allow_reentry=True,
+    )
 
-        FILLING: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer),
-
-            CallbackQueryHandler(date_callback, pattern="^DATE:"),
-            CallbackQueryHandler(checkout_callback, pattern="^CHECKOUT:"),
-            CallbackQueryHandler(skip_callback, pattern="^SKIP$"),
-
-            CommandHandler("back", back),
-            CommandHandler("status", status),
-            CommandHandler("stop", stop),
-        ],
-
-        CONFIRM_SAVE: [
-            CallbackQueryHandler(save_db_callback, pattern="^SAVE_DB$"),
-            CallbackQueryHandler(skip_db_callback, pattern="^SKIP_DB$"),
-        ],
-    },
-    fallbacks=[CommandHandler("stop", stop)],
-    allow_reentry=True,
-)
-
-
+    app.add_handler(CommandHandler("start", start))
     app.add_handler(conv)
 
     # 🚀 Самый стабильный запуск webhook
@@ -750,6 +750,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
