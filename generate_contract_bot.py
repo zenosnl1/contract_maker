@@ -130,6 +130,7 @@ def checkout_keyboard():
 def start_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("▶️ Начать оформление", callback_data="START_FLOW")],
+        [InlineKeyboardButton("📥 Импорт договора", callback_data="MENU_IMPORT")],
         [InlineKeyboardButton("📊 Статистика", callback_data="MENU_STATS")],
         [InlineKeyboardButton("👥 Текущие жильцы", callback_data="MENU_ACTIVE")],
     ])
@@ -221,6 +222,21 @@ def add_page_numbers(doc):
     run._r.append(instrText)
     run._r.append(fldChar2)
 
+async def import_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data.clear()
+    context.user_data["step"] = 0
+    context.user_data["mode"] = "import"
+
+    await query.edit_message_text(
+        "📥 Импорт договора.\n\n"
+        "Введите номер помещения:"
+    )
+
+    return FILLING
 
 def generate_docs(data):
     safe = data["CLIENT_NAME"].replace(" ", "_")
@@ -462,6 +478,7 @@ async def start_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     query = update.callback_query
     await query.answer()
 
+    context.user_data["mode"] = "normal"
     context.user_data.clear()
     context.user_data["step"] = 0
 
@@ -519,12 +536,26 @@ async def skip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    mode = context.user_data.get("mode", "normal")
     step = context.user_data["step"]
     field = FIELDS[step]
 
     text = update.message.text.strip()
 
     # ---------- ВАЛИДАЦИЯ ----------
+
+    mode = context.user_data.get("mode", "normal")
+    
+    if field in ["START_DATE", "END_DATE"] and mode == "import":
+    
+        try:
+            datetime.strptime(text, "%d.%m.%Y")
+        except ValueError:
+            await update.message.reply_text(
+                "❌ Формат даты должен быть ДД.ММ.ГГГГ"
+            )
+            return FILLING
+
 
     if field == "PRICE_PER_DAY":
         if not text.isdigit():
@@ -572,18 +603,31 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         next_field = FIELDS[step]
 
         if next_field == "START_DATE":
-            await update.message.reply_text(
-                "📅 Выберите дату заезда:",
-                reply_markup=date_keyboard(),
-            )
+            if mode == "import":
+                await update.message.reply_text(
+                    "Введите дату заезда (ДД.ММ.ГГГГ):"
+                )
+            else:
+                await update.message.reply_text(
+                    "📅 Выберите дату заезда:",
+                    reply_markup=date_keyboard(),
+                )
+        
             return FILLING
 
         if next_field == "END_DATE":
-            await update.message.reply_text(
-                "📅 Выберите дату выезда:",
-                reply_markup=date_keyboard(),
-            )
+            if mode == "import":
+                await update.message.reply_text(
+                    "Введите дату выезда (ДД.ММ.ГГГГ):"
+                )
+            else:
+                await update.message.reply_text(
+                    "📅 Выберите дату выезда:",
+                    reply_markup=date_keyboard(),
+                )
+        
             return FILLING
+
 
         if next_field == "CHECKOUT_TIME":
             await update.message.reply_text(
@@ -773,6 +817,7 @@ def main():
         states={
             MENU: [
                 CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"),
+                CallbackQueryHandler(import_flow_callback, pattern="^MENU_IMPORT$"),
                 CallbackQueryHandler(stats_callback, pattern="^MENU_STATS$"),
                 CallbackQueryHandler(active_callback, pattern="^MENU_ACTIVE$"),
             ],
@@ -815,6 +860,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
