@@ -275,9 +275,13 @@ def build_stats_excel(rows):
     ws1 = wb.active
     ws1.title = "Сводка"
 
-    total_income = sum(r["total_price"] for r in rows)
-    total_nights = sum(r["nights"] for r in rows)
-    first_date = min(r["start_date"] for r in rows)
+    total_income = sum(int(r.get("total_price", 0)) for r in rows)
+    total_nights = sum(int(r.get("nights", 0)) for r in rows)
+    first_date = min(
+        r.get("start_date") for r in rows
+        if r.get("start_date")
+    )
+
 
     ws1.append(["Общий доход (€)", total_income])
     ws1.append(["Всего ночей", total_nights])
@@ -860,6 +864,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
