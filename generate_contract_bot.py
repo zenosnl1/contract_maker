@@ -244,26 +244,66 @@ def build_stats_excel(rows):
     wb = Workbook()
 
     ws1 = wb.active
-    ws1.title = "summary"
+    ws1.title = "Сводка"
 
     total_income = sum(r["total_price"] for r in rows)
     total_nights = sum(r["nights"] for r in rows)
     first_date = min(r["start_date"] for r in rows)
 
-    ws1.append(["Total income", total_income])
-    ws1.append(["Total nights", total_nights])
-    ws1.append(["First contract", first_date])
+    ws1.append(["Общий доход", total_income])
+    ws1.append(["Всего ночей", total_nights])
+    ws1.append(["Дата первого договора", first_date])
 
-    ws2 = wb.create_sheet("contracts")
+    # увеличиваем высоту строк
+    for i in range(1, 4):
+        ws1.row_dimensions[i].height = 35
 
-    if not rows:
-        return None
+    ws2 = wb.create_sheet("Договоры")
 
-    headers = rows[0].keys()
-    ws2.append(list(headers))
+    # ---- Русские заголовки ----
+
+    headers_map = {
+        "flat_number": "Номер помещения",
+        "client_name": "Имя клиента",
+        "client_id": "Документ",
+        "client_address": "Адрес",
+        "client_mail": "Email",
+        "client_number": "Телефон",
+        "start_date": "Дата заезда",
+        "end_date": "Дата выезда",
+        "nights": "Ночей",
+        "price_per_day": "Цена за ночь",
+        "total_price": "Сумма",
+        "deposit": "Депозит",
+        "checkout_time": "Время выезда",
+    }
+
+    keys = list(rows[0].keys())
+
+    russian_headers = [headers_map.get(k, k) for k in keys]
+
+    ws2.append(russian_headers)
+
+    # стиль заголовков
+    header_font = Font(bold=True)
+    header_align = Alignment(horizontal="center", vertical="center")
+
+    for col_idx in range(1, len(russian_headers) + 1):
+        cell = ws2.cell(row=1, column=col_idx)
+        cell.font = header_font
+        cell.alignment = header_align
+
+        ws2.column_dimensions[get_column_letter(col_idx)].width = 26
+
+    ws2.row_dimensions[1].height = 40
+
+    # ---- ДАННЫЕ ----
 
     for r in rows:
         ws2.append(list(r.values()))
+
+    for row_idx in range(2, ws2.max_row + 1):
+        ws2.row_dimensions[row_idx].height = 32
 
     path = "/tmp/contracts_stats.xlsx"
     wb.save(path)
@@ -749,6 +789,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
