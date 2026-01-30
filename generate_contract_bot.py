@@ -666,14 +666,14 @@ def main():
     conv = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
-            MENU: [
+            FlowState.MENU: [
                 CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"),
                 CallbackQueryHandler(import_flow_callback, pattern="^MENU_IMPORT$"),
                 CallbackQueryHandler(stats_callback, pattern="^MENU_STATS$"),
                 CallbackQueryHandler(active_callback, pattern="^MENU_ACTIVE$"),
             ],
     
-            FILLING: [
+            FlowState.FILLING: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer),
     
                 CallbackQueryHandler(date_callback, pattern="^DATE:"),
@@ -685,7 +685,7 @@ def main():
                 CommandHandler("stop", stop),
             ],
     
-            CONFIRM_SAVE: [
+            FlowState.CONFIRM_SAVE: [
                 CallbackQueryHandler(save_db_callback, pattern="^SAVE_DB$"),
                 CallbackQueryHandler(skip_db_callback, pattern="^SKIP_DB$"),
             ],
@@ -711,6 +711,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
