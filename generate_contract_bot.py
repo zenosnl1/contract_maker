@@ -245,6 +245,17 @@ def build_stats_excel(rows):
 
     wb = Workbook()
 
+    gray_border = Border(
+        left=Side(style="thin", color="CCCCCC"),
+        right=Side(style="thin", color="CCCCCC"),
+        top=Side(style="thin", color="CCCCCC"),
+        bottom=Side(style="thin", color="CCCCCC"),
+    )
+
+    center_align = Alignment(horizontal="center", vertical="center")
+
+    # ====== СВОДКА ======
+
     ws1 = wb.active
     ws1.title = "Сводка"
 
@@ -252,20 +263,29 @@ def build_stats_excel(rows):
     total_nights = sum(r["nights"] for r in rows)
     first_date = min(r["start_date"] for r in rows)
 
-    ws1.append(["Общий доход", total_income])
+    ws1.append(["Общий доход (€)", total_income])
     ws1.append(["Всего ночей", total_nights])
     ws1.append(["Дата первого договора", first_date])
 
-    # увеличиваем высоту строк
-    for i in range(1, 4):
-        ws1.row_dimensions[i].height = 35
+    for row in ws1.iter_rows():
+        ws1.row_dimensions[row[0].row].height = 20
+
+        for cell in row:
+            cell.font = Font(bold=cell.column == 1)
+            cell.alignment = center_align
+            cell.border = gray_border
+
+            ws1.column_dimensions[get_column_letter(cell.column)].width = 30
+
+    # ====== ДОГОВОРЫ ======
 
     ws2 = wb.create_sheet("Договоры")
 
-    # ---- Русские заголовки ----
+    if not rows:
+        return None
 
     headers_map = {
-        "flat_number": "Номер помещения",
+        "flat_number": "Помещение",
         "client_name": "Имя клиента",
         "client_id": "Документ",
         "client_address": "Адрес",
@@ -274,38 +294,42 @@ def build_stats_excel(rows):
         "start_date": "Дата заезда",
         "end_date": "Дата выезда",
         "nights": "Ночей",
-        "price_per_day": "Цена за ночь",
-        "total_price": "Сумма",
+        "price_per_day": "Цена / ночь",
+        "total_price": "Общая сумма",
         "deposit": "Депозит",
         "checkout_time": "Время выезда",
     }
 
-    keys = list(rows[0].keys())
+    keys = list(headers_map.keys())
 
-    russian_headers = [headers_map.get(k, k) for k in keys]
+    ws2.append([headers_map[k] for k in keys])
 
-    ws2.append(russian_headers)
+    # ---- Заголовки ----
 
-    # стиль заголовков
-    header_font = Font(bold=True)
-    header_align = Alignment(horizontal="center", vertical="center")
+    for col in range(1, len(keys) + 1):
 
-    for col_idx in range(1, len(russian_headers) + 1):
-        cell = ws2.cell(row=1, column=col_idx)
-        cell.font = header_font
-        cell.alignment = header_align
+        cell = ws2.cell(row=1, column=col)
 
-        ws2.column_dimensions[get_column_letter(col_idx)].width = 26
+        cell.font = Font(bold=True)
+        cell.alignment = center_align
+        cell.border = gray_border
 
-    ws2.row_dimensions[1].height = 40
+        ws2.column_dimensions[get_column_letter(col)].width = 26
 
-    # ---- ДАННЫЕ ----
+    ws2.row_dimensions[1].height = 26
+
+    # ---- Данные ----
 
     for r in rows:
-        ws2.append(list(r.values()))
+        ws2.append([r.get(k) for k in keys])
 
-    for row_idx in range(2, ws2.max_row + 1):
-        ws2.row_dimensions[row_idx].height = 32
+    for row in ws2.iter_rows(min_row=2):
+
+        ws2.row_dimensions[row[0].row].height = 18
+
+        for cell in row:
+            cell.alignment = center_align
+            cell.border = gray_border
 
     path = "/tmp/contracts_stats.xlsx"
     wb.save(path)
@@ -791,6 +815,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
