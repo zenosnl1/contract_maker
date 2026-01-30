@@ -484,8 +484,8 @@ async def start_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     query = update.callback_query
     await query.answer()
 
-    context.user_data["mode"] = "normal"
     context.user_data.clear()
+    context.user_data["mode"] = "normal"
     context.user_data["step"] = 0
 
     await query.edit_message_text(
@@ -866,6 +866,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
