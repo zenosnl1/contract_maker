@@ -6,6 +6,7 @@ import socketserver
 import os
 import asyncio
 import requests
+from core.constants import FIELDS, QUESTIONS, CALLBACKS
 from reports.excel import build_stats_excel
 from db.client import (
     fetch_all_contracts,
@@ -38,38 +39,6 @@ TOKEN = os.environ["BOT_TOKEN"]
 MENU = 0
 FILLING = 1
 CONFIRM_SAVE = 2
-
-CONTRACT_TEMPLATE = "template_contract.docx"
-ACT_TEMPLATE = "template_act.docx"
-
-FIELDS = [
-    "FLAT_NUMBER",
-    "CLIENT_NAME",
-    "CLIENT_ID",
-"CLIENT_ADDRESS",
-"CLIENT_MAIL",
-"CLIENT_NUMBER",
-    "START_DATE",
-    "END_DATE",
-"CHECKOUT_TIME",
-"PRICE_PER_DAY",
-    "DEPOSIT",
-]
-
-QUESTIONS = {
-    "FLAT_NUMBER": "Номер помещения:",
-    "CLIENT_NAME": "Имя клиента:",
-    "CLIENT_ID": "Документ / персональный код:",
-"CLIENT_ADDRESS": "Адрес клиента:",
-"CLIENT_MAIL": "EMAIL клиента",
-"CLIENT_NUMBER": "Номер телефона клиента",
-    "START_DATE": "Дата заезда:",
-    "END_DATE": "Дата выезда:",
-"CHECKOUT_TIME": "Время выезда:",
-"PRICE_PER_DAY": "Цена за ночь:",
-    "DEPOSIT": "Депозит:",
-}
-
 
 # ===== Word replacement =====
 
@@ -740,6 +709,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
