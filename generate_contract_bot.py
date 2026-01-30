@@ -6,6 +6,11 @@ import socketserver
 import os
 import asyncio
 import requests
+from db.client import (
+    fetch_all_contracts,
+    fetch_active_contracts,
+    insert_contract,
+)
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -677,39 +682,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"OK")
 
-def fetch_all_contracts():
-
-    url = os.environ["SUPABASE_URL"] + "/rest/v1/contracts?select=*"
-
-    headers = {
-        "apikey": os.environ["SUPABASE_KEY"],
-        "Authorization": f"Bearer {os.environ['SUPABASE_KEY']}",
-    }
-
-    r = requests.get(url, headers=headers, timeout=10)
-    r.raise_for_status()
-
-    return r.json()
-
-def fetch_active_contracts():
-
-    today = date.today().isoformat()
-
-    url = (
-        os.environ["SUPABASE_URL"]
-        + f"/rest/v1/contracts?start_date=lte.{today}&end_date=gt.{today}"
-    )
-
-    headers = {
-        "apikey": os.environ["SUPABASE_KEY"],
-        "Authorization": f"Bearer {os.environ['SUPABASE_KEY']}",
-    }
-
-    r = requests.get(url, headers=headers, timeout=10)
-    r.raise_for_status()
-
-    return r.json()
-
 async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     query = update.callback_query
@@ -866,6 +838,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
