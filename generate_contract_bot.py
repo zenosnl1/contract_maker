@@ -6,6 +6,7 @@ import socketserver
 import os
 import asyncio
 import requests
+from enum import IntEnum
 from core.constants import FIELDS, QUESTIONS, CALLBACKS
 from reports.excel import build_stats_excel
 from db.client import (
@@ -36,9 +37,10 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 TOKEN = os.environ["BOT_TOKEN"]
 
-MENU = 0
-FILLING = 1
-CONFIRM_SAVE = 2
+class FlowState(IntEnum):
+    MENU = 0
+    FILLING = 1
+    CONFIRM_SAVE = 2
 
 # ===== Word replacement =====
 
@@ -52,7 +54,7 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     step = context.user_data["step"]
     if step >= len(FIELDS):
-        return FILLING
+        return FlowState.FILLING
     
     field = FIELDS[step]
 
@@ -70,7 +72,7 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📅 Выберите дату выезда:",
             reply_markup=date_keyboard(start_from=next_day),
         )
-        return FILLING
+        return FlowState.FILLING
 
 
     # после END_DATE — просто спрашиваем следующий шаг (CHECKOUT_TIME)
@@ -81,10 +83,10 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "⏰ Выберите время выезда:",
             reply_markup=checkout_keyboard(),
         )
-        return FILLING
+        return FlowState.FILLING
     
     await query.edit_message_text(QUESTIONS[next_field])
-    return FILLING
+    return FlowState.FILLING
 
 
 
@@ -211,7 +213,7 @@ async def import_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         "Введите номер помещения:"
     )
 
-    return FILLING
+    return FlowState.FILLING
 
 def generate_docs(data):
     safe = data["CLIENT_NAME"].replace(" ", "_")
@@ -243,7 +245,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=start_keyboard(),
     )
 
-    return MENU
+    return FlowState.MENU
 
 
 
@@ -253,7 +255,7 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🛑 Процесс заполнения остановлен.",
         reply_markup=start_keyboard(),
     )
-    return MENU
+    return FlowState.MENU
 
 async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data.get("step", 0)
@@ -262,7 +264,7 @@ async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "Вы уже в начале. Введите значение или используйте /stop."
         )
-        return FILLING
+        return FlowState.FILLING
 
     step -= 1
     context.user_data["step"] = step
@@ -273,12 +275,12 @@ async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⬅️ Возврат назад.\n\n{QUESTIONS[field]}"
     )
 
-    return FILLING
+    return FlowState.FILLING
 
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data:
         await update.message.reply_text("Пока ничего не введено.")
-        return FILLING
+        return FlowState.FILLING
 
     lines = ["📋 Текущие данные:"]
 
@@ -287,7 +289,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
             lines.append(f"• {f}: {context.user_data[f]}")
 
     await update.message.reply_text("\n".join(lines))
-    return FILLING
+    return FlowState.FILLING
 
 async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -299,12 +301,12 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print("🔥 STATS ERROR:", repr(e))
         await query.edit_message_text("⚠️ Ошибка получения данных.", reply_markup=None)
-        return MENU
+        return FlowState.MENU
 
 
     if not rows:
         await query.edit_message_text("Пока нет договоров.", reply_markup=None)
-        return MENU
+        return FlowState.MENU
 
     path = build_stats_excel(rows)
 
@@ -317,7 +319,7 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=start_keyboard(),
     )
 
-    return MENU
+    return FlowState.MENU
 
 async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -328,11 +330,11 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         rows = fetch_active_contracts()
     except Exception:
         await query.edit_message_text("⚠️ Ошибка получения данных.", reply_markup=None)
-        return MENU
+        return FlowState.MENU
 
     if not rows:
         await query.edit_message_text("Сейчас жильцов нет.", reply_markup=None)
-        return MENU
+        return FlowState.MENU
 
     lines = ["👥 Текущие жильцы:\n"]
 
@@ -353,7 +355,7 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=start_keyboard(),
     )
 
-    return MENU
+    return FlowState.MENU
 
 async def start_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -369,7 +371,7 @@ async def start_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         + QUESTIONS[FIELDS[0]]
     , reply_markup=None)
 
-    return FILLING
+    return FlowState.FILLING
 
 async def checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -389,7 +391,7 @@ async def checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     next_field = FIELDS[step]
 
     await query.edit_message_text(QUESTIONS[next_field], reply_markup=None)
-    return FILLING
+    return FlowState.FILLING
 
 async def skip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -411,10 +413,10 @@ async def skip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             QUESTIONS[next_field],
             reply_markup=skip_keyboard(),
         )
-        return FILLING
+        return FlowState.FILLING
     
     await query.edit_message_text(QUESTIONS[next_field], reply_markup=None)
-    return FILLING
+    return FlowState.FILLING
 
 async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -436,7 +438,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(
                 "❌ Формат даты должен быть ДД.ММ.ГГГГ"
             )
-            return FILLING
+            return FlowState.FILLING
 
 
     if field == "PRICE_PER_DAY":
@@ -444,14 +446,14 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(
                 "❌ Введите цену цифрами, например: 25"
             )
-            return FILLING
+            return FlowState.FILLING
 
     if field == "DEPOSIT":
         if not text.isdigit():
             await update.message.reply_text(
                 "❌ Введите депозит цифрами, например: 80"
             )
-            return FILLING
+            return FlowState.FILLING
 
     # ---------- СОХРАНЯЕМ ----------
 
@@ -495,7 +497,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=date_keyboard(),
                 )
         
-            return FILLING
+            return FlowState.FILLING
 
         if next_field == "END_DATE":
             if mode == "import":
@@ -508,7 +510,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=date_keyboard(),
                 )
         
-            return FILLING
+            return FlowState.FILLING
 
 
         if next_field == "CHECKOUT_TIME":
@@ -516,17 +518,17 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "⏰ Выберите время выезда:",
                 reply_markup=checkout_keyboard(),
             )
-            return FILLING
+            return FlowState.FILLING
 
         if next_field in ["CLIENT_ADDRESS", "CLIENT_MAIL"]:
             await update.message.reply_text(
                 QUESTIONS[next_field],
                 reply_markup=skip_keyboard(),
             )
-            return FILLING
+            return FlowState.FILLING
 
         await update.message.reply_text(QUESTIONS[next_field])
-        return FILLING
+        return FlowState.FILLING
 
     # ---------- ФИНАЛ: ГЕНЕРИРУЕМ ДОКУМЕНТЫ ----------
 
@@ -545,7 +547,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ])
     )
 
-    return CONFIRM_SAVE
+    return FlowState.CONFIRM_SAVE
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -572,7 +574,7 @@ async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=start_keyboard(),
     )
 
-    return MENU
+    return FlowState.MENU
 
 async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -588,7 +590,7 @@ async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=start_keyboard(),
     )
 
-    return MENU
+    return FlowState.MENU
 
 def save_contract_to_db(data, files):
 
@@ -709,6 +711,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
