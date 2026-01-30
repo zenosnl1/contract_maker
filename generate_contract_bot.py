@@ -8,6 +8,7 @@ import asyncio
 import requests
 from enum import IntEnum
 from core.constants import FIELDS, QUESTIONS
+from core.constants import CONTRACT_TEMPLATE, ACT_TEMPLATE
 from reports.excel import build_stats_excel
 from db.client import (
     fetch_all_contracts,
@@ -711,6 +712,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
