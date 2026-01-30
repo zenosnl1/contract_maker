@@ -7,7 +7,7 @@ import os
 import asyncio
 import requests
 from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment
+from openpyxl.styles import Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from telegram.ext import ApplicationBuilder
 from telegram import Update
@@ -815,6 +815,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
