@@ -420,9 +420,11 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         rows = fetch_all_contracts()
-    except Exception:
+    except Exception as e:
+        print("🔥 STATS ERROR:", repr(e))
         await query.edit_message_text("⚠️ Ошибка получения данных.", reply_markup=None)
         return MENU
+
 
     if not rows:
         await query.edit_message_text("Пока нет договоров.", reply_markup=None)
@@ -864,6 +866,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
