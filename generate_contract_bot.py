@@ -728,7 +728,7 @@ async def close_receive_date(update, context):
         d = datetime.strptime(update.message.text, "%d.%m.%Y").date()
     except ValueError:
         await update.message.reply_text("❌ Формат: ДД.ММ.ГГГГ")
-        return FlowState.CLOSE_PICK_DATE
+        return FlowState.CLOSE_ENTER_DATE
 
     context.user_data["actual_end_date"] = d
 
@@ -884,6 +884,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
