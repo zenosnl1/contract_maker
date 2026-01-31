@@ -838,14 +838,28 @@ def main():
             FlowState.EDIT_ENTER_CODE: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, edit_enter_code_handler),
             ],
-            
+        
             FlowState.EDIT_ACTION: [
                 CallbackQueryHandler(close_contract_start, pattern="^CLOSE_CONTRACT$"),
             ],
-            
+        
             FlowState.CLOSE_IS_EARLY: [
                 CallbackQueryHandler(close_early_yes, pattern="^CLOSE_EARLY_YES$"),
                 CallbackQueryHandler(close_early_no, pattern="^CLOSE_EARLY_NO$"),
+            ],
+        
+            FlowState.CLOSE_PICK_DATE: [
+                CallbackQueryHandler(close_today, pattern="^CLOSE_TODAY$"),
+                CallbackQueryHandler(close_manual, pattern="^CLOSE_MANUAL$"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, close_receive_date),
+            ],
+        
+            FlowState.CLOSE_ENTER_DEPOSIT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, close_enter_deposit),
+            ],
+        
+            FlowState.CLOSE_ENTER_REASON: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, close_enter_reason),
             ],
         },
         fallbacks=[CommandHandler("stop", stop)],
@@ -869,6 +883,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
