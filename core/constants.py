@@ -17,6 +17,7 @@ class FlowState(IntEnum):
     CLOSE_ENTER_DEPOSIT = 23
     CLOSE_REASON = 24
     CLOSE_ENTER_REASON = 25
+    CLOSE_ENTER_DATE = 26
 
 FIELDS = [
     "FLAT_NUMBER",
