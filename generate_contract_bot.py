@@ -689,7 +689,7 @@ async def close_early_yes(update, context):
         ])
     )
 
-    return FlowState.CLOSE_PICK_DATE
+    return FlowState.CLOSE_ENTER_DATE
 
 async def close_early_no(update, context):
 
@@ -884,6 +884,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
