@@ -83,29 +83,37 @@ def save_contract_to_db(data, files):
         raise RuntimeError("Supabase insert failed")
 
 def close_contract(
-    contract_id: int,
-    actual_end_date: date,
-    actual_returned_deposit: int,
-    close_reason: str | None,
+    contract_code: str,
+    actual_checkout_date: date,
+    returned_deposit: int,
+    deposit_comment: str | None,
 ):
 
-    payload = {
-        "actual_end_date": actual_end_date.isoformat(),
-        "actual_returned_deposit": actual_returned_deposit,
-        "deposit_reason": close_reason,
-        "status": "closed",
-    }
-
-    url = SUPABASE_URL + f"/rest/v1/contracts?id=eq.{contract_id}"
+    url = (
+        os.environ["SUPABASE_URL"]
+        + f"/rest/v1/contracts?contract_code=eq.{contract_code}"
+    )
 
     headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "apikey": os.environ["SUPABASE_KEY"],
+        "Authorization": f"Bearer {os.environ['SUPABASE_KEY']}",
         "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+
+    payload = {
+        "actual_checkout_date": actual_checkout_date.isoformat(),
+        "returned_deposit": returned_deposit,
+        "deposit_comment": deposit_comment,
     }
 
     r = requests.patch(url, json=payload, headers=headers, timeout=10)
+
+    print("🔵 CLOSE status:", r.status_code)
+    print("🔵 CLOSE body:", r.text)
+
     r.raise_for_status()
+
 
 def get_contract_by_code(contract_code: str):
 
