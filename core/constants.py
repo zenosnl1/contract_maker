@@ -1,3 +1,4 @@
+from enum import IntEnum
 
 CONTRACT_TEMPLATE = "template_contract.docx"
 ACT_TEMPLATE = "template_act.docx"
