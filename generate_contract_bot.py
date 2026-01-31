@@ -339,15 +339,41 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     lines = ["👥 Текущие жильцы:\n"]
 
+    today = date.today()
+
     for r in rows:
+    
+        start = datetime.fromisoformat(r["start_date"]).date()
+        end = datetime.fromisoformat(r["end_date"]).date()
+    
+        nights = int(r["nights"])
+        price = int(r["price_per_day"])
+        total = int(r["total_price"])
+    
+        lived_nights = (today - start).days
+        lived_nights = max(0, min(lived_nights, nights))
+    
+        remaining_nights = nights - lived_nights
+    
+        earned = lived_nights * price
+    
+        refund_today = total - earned
+        if refund_today < 0:
+            refund_today = 0
+    
         lines.append(
             f"🏠 {r['flat_number']}\n"
             f"👤 {r['client_name']}\n"
             f"📞 {r['client_number']}\n"
-            f"📅 {r['start_date']} → {r['end_date']}\n"
-            f"💶 {r['total_price']} €\n"
+            f"📅 {r['start_date']} → {r['end_date']}\n\n"
+    
+            f"✅ Прожито: {lived_nights} ночей / {earned} €\n"
+            f"⏳ Осталось: {remaining_nights} ночей\n"
+            f"↩️ Возврат при выезде сегодня: {refund_today} €\n"
+    
             "—"
         )
+
 
     await query.edit_message_text("\n".join(lines), reply_markup=None)
 
@@ -712,6 +738,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
