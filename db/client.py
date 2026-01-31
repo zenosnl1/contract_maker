@@ -85,24 +85,22 @@ def save_contract_to_db(data, files):
 def close_contract(
     contract_id: int,
     actual_end_date: date,
-    returned_deposit: int,
-    comment: str | None,
+    actual_returned_deposit: int,
+    close_reason: str | None,
 ):
-
-    url = (
-        os.environ["SUPABASE_URL"]
-        + f"/rest/v1/contracts?id=eq.{contract_id}"
-    )
 
     payload = {
         "actual_end_date": actual_end_date.isoformat(),
-        "returned_deposit": returned_deposit,
-        "deposit_comment": comment,
+        "actual_returned_deposit": actual_returned_deposit,
+        "deposit_reason": close_reason,
+        "status": "closed",
     }
 
+    url = SUPABASE_URL + f"/rest/v1/contracts?id=eq.{contract_id}"
+
     headers = {
-        "apikey": os.environ["SUPABASE_KEY"],
-        "Authorization": f"Bearer {os.environ['SUPABASE_KEY']}",
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
         "Content-Type": "application/json",
     }
 
