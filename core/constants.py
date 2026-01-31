@@ -2,6 +2,21 @@
 CONTRACT_TEMPLATE = "template_contract.docx"
 ACT_TEMPLATE = "template_act.docx"
 
+class FlowState(IntEnum):
+    MENU = 0
+    FILLING = 1
+    CONFIRM_SAVE = 2
+
+    EDIT_ENTER_CODE = 10
+    EDIT_ACTION = 11
+
+    CLOSE_IS_EARLY = 20
+    CLOSE_DATE_CHOICE = 21
+    CLOSE_MANUAL_DATE = 22
+
+    CLOSE_DEPOSIT = 23
+    CLOSE_DEPOSIT_REASON = 24
+
 FIELDS = [
     "FLAT_NUMBER",
     "CLIENT_NAME",
