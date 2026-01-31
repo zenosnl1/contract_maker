@@ -94,23 +94,22 @@ def close_contract(
         + f"/rest/v1/contracts?contract_code=eq.{contract_code}"
     )
 
-    headers = {
-        "apikey": os.environ["SUPABASE_KEY"],
-        "Authorization": f"Bearer {os.environ['SUPABASE_KEY']}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-    }
-
     payload = {
         "actual_checkout_date": actual_checkout_date.isoformat(),
         "returned_deposit": returned_deposit,
         "deposit_comment": deposit_comment,
     }
 
+    headers = {
+        "apikey": os.environ["SUPABASE_KEY"],
+        "Authorization": f"Bearer {os.environ['SUPABASE_KEY']}",
+        "Content-Type": "application/json",
+    }
+
     r = requests.patch(url, json=payload, headers=headers, timeout=10)
 
-    print("🔵 CLOSE status:", r.status_code)
-    print("🔵 CLOSE body:", r.text)
+    print("🟡 CLOSE STATUS:", r.status_code)
+    print("🟡 CLOSE BODY:", r.text)
 
     r.raise_for_status()
 
