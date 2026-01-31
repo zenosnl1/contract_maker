@@ -1,6 +1,6 @@
 import os
 import requests
-from datetime import date
+from datetime import datetime
 from core.utils import build_contract_code
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
