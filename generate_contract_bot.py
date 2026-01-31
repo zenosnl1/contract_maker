@@ -622,60 +622,84 @@ async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return FlowState.MENU
 
-async def edit_menu_callback(update, context):
+async def edit_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    q = update.callback_query
-    await q.answer()
+    query = update.callback_query
+    await query.answer()
 
-    await q.edit_message_text(
-        "✏️ Редактирование договора.\n\n"
+    await query.edit_message_text(
         "Введите номер договора:"
     )
 
     return FlowState.EDIT_ENTER_CODE
 
-async def edit_enter_code_handler(update, context):
+
+async def edit_enter_code_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     code = update.message.text.strip()
 
     contract = get_contract_by_code(code)
 
     if not contract:
-        await update.message.reply_text("❌ Договор не найден.")
+        await update.message.reply_text("❌ Договор не найден. Попробуйте снова.")
         return FlowState.EDIT_ENTER_CODE
 
-    context.user_data["closing_contract"] = contract
-
-    kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("▶️ Завершить договор", callback_data="CLOSE_CONTRACT")],
-        [InlineKeyboardButton("⬅️ В меню", callback_data="EDIT_BACK")],
-    ])
+    context.user_data["edit_contract"] = contract
 
     await update.message.reply_text(
-        f"📄 Договор {contract['contract_code']} найден.",
-        reply_markup=kb,
+        "Что сделать с договором?",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🏁 Завершить договор", callback_data="CLOSE_CONTRACT")]
+        ])
     )
 
     return FlowState.EDIT_ACTION
 
-async def close_contract_start(update, context):
+async def close_contract_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    q = update.callback_query
-    await q.answer()
+    query = update.callback_query
+    await query.answer()
 
-    kb = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("✅ Да", callback_data="CLOSE_EARLY_YES"),
-            InlineKeyboardButton("❌ Нет", callback_data="CLOSE_EARLY_NO"),
-        ]
-    ])
-
-    await q.edit_message_text(
-        "❓ Договор завершён досрочно?",
-        reply_markup=kb,
+    await query.edit_message_text(
+        "Досрочное завершение?",
+        reply_markup=InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("Да", callback_data="CLOSE_EARLY_YES"),
+                InlineKeyboardButton("Нет", callback_data="CLOSE_EARLY_NO"),
+            ]
+        ])
     )
 
     return FlowState.CLOSE_IS_EARLY
+
+async def close_early_yes(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text(
+        "Использовать сегодняшнюю дату?",
+        reply_markup=InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("Сегодня", callback_data="CLOSE_TODAY"),
+                InlineKeyboardButton("Ввести вручную", callback_data="CLOSE_MANUAL"),
+            ]
+        ])
+    )
+
+    return FlowState.CLOSE_PICK_DATE
+
+async def close_early_no(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data["actual_end_date"] = datetime.today().date()
+
+    await query.edit_message_text("Введите фактически возвращенный депозит:")
+
+    return FlowState.CLOSE_ENTER_DEPOSIT
+
 
 
 # ===== main =====
@@ -766,6 +790,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
