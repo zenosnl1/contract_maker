@@ -109,6 +109,29 @@ def close_contract(
     r = requests.patch(url, json=payload, headers=headers, timeout=10)
     r.raise_for_status()
 
+def get_contract_by_code(contract_code: str):
+
+    url = (
+        SUPABASE_URL
+        + f"/rest/v1/contracts?contract_code=eq.{contract_code}&select=*"
+    )
+
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+    }
+
+    r = requests.get(url, headers=headers, timeout=10)
+    r.raise_for_status()
+
+    rows = r.json()
+
+    if not rows:
+        return None
+
+    return rows[0]
+
+
 def insert_contract(payload):
     r = requests.post(
         f"{SUPABASE_URL}/rest/v1/contracts",
