@@ -620,6 +620,62 @@ async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return FlowState.MENU
 
+async def edit_menu_callback(update, context):
+
+    q = update.callback_query
+    await q.answer()
+
+    await q.edit_message_text(
+        "✏️ Редактирование договора.\n\n"
+        "Введите номер договора:"
+    )
+
+    return FlowState.EDIT_ENTER_CODE
+
+async def edit_enter_code_handler(update, context):
+
+    code = update.message.text.strip()
+
+    contract = get_contract_by_code(code)
+
+    if not contract:
+        await update.message.reply_text("❌ Договор не найден.")
+        return FlowState.EDIT_ENTER_CODE
+
+    context.user_data["closing_contract"] = contract
+
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("▶️ Завершить договор", callback_data="CLOSE_CONTRACT")],
+        [InlineKeyboardButton("⬅️ В меню", callback_data="EDIT_BACK")],
+    ])
+
+    await update.message.reply_text(
+        f"📄 Договор {contract['contract_code']} найден.",
+        reply_markup=kb,
+    )
+
+    return FlowState.EDIT_ACTION
+
+async def close_contract_start(update, context):
+
+    q = update.callback_query
+    await q.answer()
+
+    kb = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("✅ Да", callback_data="CLOSE_EARLY_YES"),
+            InlineKeyboardButton("❌ Нет", callback_data="CLOSE_EARLY_NO"),
+        ]
+    ])
+
+    await q.edit_message_text(
+        "❓ Договор завершён досрочно?",
+        reply_markup=kb,
+    )
+
+    return FlowState.CLOSE_IS_EARLY
+
+
 # ===== main =====
 
 WEBHOOK_PATH = "/webhook"
@@ -653,6 +709,7 @@ def main():
             FlowState.MENU: [
                 CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"),
                 CallbackQueryHandler(import_flow_callback, pattern="^MENU_IMPORT$"),
+                CallbackQueryHandler(edit_menu_callback, pattern="^MENU_EDIT$"),
                 CallbackQueryHandler(stats_callback, pattern="^MENU_STATS$"),
                 CallbackQueryHandler(active_callback, pattern="^MENU_ACTIVE$"),
             ],
@@ -695,6 +752,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
