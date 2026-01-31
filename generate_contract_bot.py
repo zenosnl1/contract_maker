@@ -732,6 +732,18 @@ def main():
                 CallbackQueryHandler(save_db_callback, pattern="^SAVE_DB$"),
                 CallbackQueryHandler(skip_db_callback, pattern="^SKIP_DB$"),
             ],
+            FlowState.EDIT_ENTER_CODE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, edit_enter_code_handler),
+            ],
+            
+            FlowState.EDIT_ACTION: [
+                CallbackQueryHandler(close_contract_start, pattern="^CLOSE_CONTRACT$"),
+            ],
+            
+            FlowState.CLOSE_IS_EARLY: [
+                CallbackQueryHandler(close_early_yes, pattern="^CLOSE_EARLY_YES$"),
+                CallbackQueryHandler(close_early_no, pattern="^CLOSE_EARLY_NO$"),
+            ],
         },
         fallbacks=[CommandHandler("stop", stop)],
         allow_reentry=True,
@@ -754,6 +766,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
