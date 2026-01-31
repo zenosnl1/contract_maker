@@ -849,7 +849,7 @@ def main():
                 CallbackQueryHandler(close_early_no, pattern="^CLOSE_EARLY_NO$"),
             ],
         
-            FlowState.CLOSE_PICK_DATE: [
+            FlowState.CLOSE_ENTER_DATE: [
                 CallbackQueryHandler(close_today, pattern="^CLOSE_TODAY$"),
                 CallbackQueryHandler(close_manual, pattern="^CLOSE_MANUAL$"),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, close_receive_date),
@@ -884,6 +884,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
