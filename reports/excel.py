@@ -20,8 +20,8 @@ def build_stats_excel(rows):
     ws1 = wb.active
     ws1.title = "Сводка"
 
-    total_income = sum(int(r.get("total_price", 0)) for r in rows)
-    total_nights = sum(int(r.get("nights", 0)) for r in rows)
+    total_income = sum(int(r.get("total_price") or 0) for r in rows)
+    total_nights = sum(int(r.get("nights") or 0) for r in rows)
     first_date = min(
         r.get("start_date") for r in rows
         if r.get("start_date")
