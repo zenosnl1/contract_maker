@@ -720,7 +720,7 @@ async def close_manual(update, context):
 
     await query.edit_message_text("Введите дату закрытия (ДД.ММ.ГГГГ):")
 
-    return FlowState.CLOSE_PICK_DATE
+    return FlowState.CLOSE_ENTER_DATE
 
 async def close_receive_date(update, context):
 
@@ -884,6 +884,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
