@@ -1,9 +1,18 @@
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from datetime import datetime
 
 def build_stats_excel(rows):
 
+    rows = sorted(
+            rows,
+            key=lambda r: datetime.fromisoformat(r["start_date"])
+            if r.get("start_date")
+            else datetime.min,
+            reverse=True,
+        )
+    
     wb = Workbook()
 
     gray_border = Border(
