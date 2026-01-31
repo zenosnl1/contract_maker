@@ -766,10 +766,10 @@ async def finalize_close(update, context):
     c = context.user_data["edit_contract"]
 
     close_contract(
-        contract_id=c["id"],
-        actual_end_date=context.user_data["actual_end_date"],
-        actual_returned_deposit=context.user_data["actual_returned_deposit"],
-        close_reason=context.user_data["close_reason"],
+        contract_code=context.user_data["close_contract_code"],
+        actual_checkout_date=context.user_data["close_actual_date"],
+        returned_deposit=context.user_data["close_returned_deposit"],
+        deposit_comment=context.user_data.get("close_comment"),
     )
 
     await update.message.reply_text(
@@ -883,6 +883,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
