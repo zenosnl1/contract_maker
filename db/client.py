@@ -72,6 +72,7 @@ def save_contract_to_db(data, files):
         "deposit": int(data["DEPOSIT"]),
 
         "checkout_time": data["CHECKOUT_TIME"],
+        "is_closed": False,
     }
 
     r = requests.post(url, json=payload, headers=headers, timeout=10)
