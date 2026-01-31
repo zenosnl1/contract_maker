@@ -342,24 +342,29 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     today = date.today()
 
     for r in rows:
-    
-        start = datetime.fromisoformat(r["start_date"]).date()
-        end = datetime.fromisoformat(r["end_date"]).date()
-    
-        nights = int(r["nights"])
-        price = int(r["price_per_day"])
-        total = int(r["total_price"])
-    
-        lived_nights = (today - start).days
-        lived_nights = max(0, min(lived_nights, nights))
-    
-        remaining_nights = nights - lived_nights
-    
-        earned = lived_nights * price
-    
-        refund_today = total - earned
-        if refund_today < 0:
-            refund_today = 0
+
+        try:
+            start = datetime.fromisoformat(r["start_date"]).date()
+            end = datetime.fromisoformat(r["end_date"]).date()
+        
+            nights = int(r["nights"])
+            price = int(r["price_per_day"])
+            total = int(r["total_price"])
+        
+            lived_nights = (today - start).days
+            lived_nights = max(0, min(lived_nights, nights))
+        
+            remaining_nights = nights - lived_nights
+        
+            earned = lived_nights * price
+        
+            refund_today = total - earned
+            if refund_today < 0:
+                refund_today = 0
+        except Exception as e:
+            print("🔥 ACTIVE ROW ERROR:", r)
+            print(e)
+            continue
     
         lines.append(
             f"🏠 {r['flat_number']}\n"
@@ -738,6 +743,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
