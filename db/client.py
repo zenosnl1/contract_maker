@@ -26,12 +26,16 @@ def fetch_active_contracts():
 
     r = requests.get(
         f"{SUPABASE_URL}/rest/v1/contracts"
-        f"?start_date=lte.{today}&end_date=gt.{today}",
+        f"?is_closed=eq.false"
+        f"&start_date=lte.{today}"
+        f"&end_date=gte.{today}",
         headers=HEADERS,
         timeout=10,
     )
+
     r.raise_for_status()
     return r.json()
+
 
 def save_contract_to_db(data, files):
 
@@ -90,6 +94,14 @@ def close_contract(
     deposit_comment: str | None,
 ):
 
+    contract = get_contract_by_code(contract_code)
+
+    if not contract:
+        raise ValueError("Contract not found")
+
+    if contract["is_closed"]:
+        raise ValueError("Contract already closed")
+    
     url = (
         os.environ["SUPABASE_URL"]
         + f"/rest/v1/contracts?contract_code=eq.{contract_code}"
@@ -99,6 +111,7 @@ def close_contract(
         "actual_checkout_date": actual_checkout_date.isoformat(),
         "returned_deposit": returned_deposit,
         "deposit_comment": deposit_comment,
+        "is_closed": True,
     }
 
     headers = {
