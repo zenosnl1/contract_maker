@@ -700,6 +700,84 @@ async def close_early_no(update, context):
 
     return FlowState.CLOSE_ENTER_DEPOSIT
 
+async def close_today(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data["actual_end_date"] = datetime.today().date()
+
+    await query.edit_message_text("Введите фактически возвращенный депозит:")
+
+    return FlowState.CLOSE_ENTER_DEPOSIT
+
+async def close_manual(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text("Введите дату закрытия (ДД.ММ.ГГГГ):")
+
+    return FlowState.CLOSE_PICK_DATE
+
+async def close_receive_date(update, context):
+
+    try:
+        d = datetime.strptime(update.message.text, "%d.%m.%Y").date()
+    except ValueError:
+        await update.message.reply_text("❌ Формат: ДД.ММ.ГГГГ")
+        return FlowState.CLOSE_PICK_DATE
+
+    context.user_data["actual_end_date"] = d
+
+    await update.message.reply_text("Введите фактически возвращенный депозит:")
+
+    return FlowState.CLOSE_ENTER_DEPOSIT
+
+async def close_enter_deposit(update, context):
+
+    val = update.message.text.strip()
+
+    if not val.isdigit():
+        await update.message.reply_text("Введите число")
+        return FlowState.CLOSE_ENTER_DEPOSIT
+
+    context.user_data["actual_returned_deposit"] = int(val)
+
+    orig = int(context.user_data["edit_contract"]["deposit"])
+
+    if int(val) < orig:
+        await update.message.reply_text("Почему депозит удержан?")
+        return FlowState.CLOSE_ENTER_REASON
+
+    context.user_data["close_reason"] = None
+
+    return await finalize_close(update, context)
+
+async def close_enter_reason(update, context):
+
+    context.user_data["close_reason"] = update.message.text.strip()
+
+    return await finalize_close(update, context)
+
+async def finalize_close(update, context):
+
+    c = context.user_data["edit_contract"]
+
+    close_contract(
+        contract_id=c["id"],
+        actual_end_date=context.user_data["actual_end_date"],
+        actual_returned_deposit=context.user_data["actual_returned_deposit"],
+        close_reason=context.user_data["close_reason"],
+    )
+
+    await update.message.reply_text(
+        "✅ Договор закрыт.",
+        reply_markup=start_keyboard(),
+    )
+
+    return FlowState.MENU
+
 
 
 # ===== main =====
@@ -790,6 +868,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
