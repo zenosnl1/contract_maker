@@ -1,7 +1,7 @@
 import os
 import requests
 from datetime import date
-from utils import build_contract_code
+from core.utils import build_contract_code
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_KEY"]
