@@ -7,13 +7,14 @@ import os
 import asyncio
 import requests
 from enum import IntEnum
+from core.utils import build_contract_code
 from core.constants import FIELDS, QUESTIONS
 from core.constants import CONTRACT_TEMPLATE, ACT_TEMPLATE
 from reports.excel import build_stats_excel
 from db.client import (
     fetch_all_contracts,
     fetch_active_contracts,
-    insert_contract,
+    save_contract_to_db,
 )
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
@@ -624,50 +625,6 @@ async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return FlowState.MENU
 
-def save_contract_to_db(data, files):
-
-    url = os.environ["SUPABASE_URL"] + "/rest/v1/contracts"
-
-    headers = {
-        "apikey": os.environ["SUPABASE_KEY"],
-        "Authorization": f"Bearer {os.environ['SUPABASE_KEY']}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-    }
-
-    start = datetime.strptime(data["START_DATE"], "%d.%m.%Y")
-    end = datetime.strptime(data["END_DATE"], "%d.%m.%Y")
-
-    nights = (end - start).days
-
-    payload = {
-        "flat_number": data.get("FLAT_NUMBER"),
-
-        "client_name": data.get("CLIENT_NAME"),
-        "client_id": data.get("CLIENT_ID"),
-        "client_address": data.get("CLIENT_ADDRESS"),
-        "client_mail": data.get("CLIENT_MAIL"),
-        "client_number": data.get("CLIENT_NUMBER"),
-
-        "start_date": start.strftime("%Y-%m-%d"),
-        "end_date": end.strftime("%Y-%m-%d"),
-        "nights": nights,
-
-        "price_per_day": int(data["PRICE_PER_DAY"]),
-        "total_price": int(data["TOTAL_PRICE"]),
-        "deposit": int(data["DEPOSIT"]),
-
-        "checkout_time": data["CHECKOUT_TIME"],
-    }
-
-    r = requests.post(url, json=payload, headers=headers, timeout=10)
-
-    print("🟡 Supabase INSERT status:", r.status_code)
-    print("🟡 Supabase INSERT body:", r.text)
-    
-    if r.status_code not in (200, 201):
-        raise RuntimeError("Supabase insert failed")
-
 # ===== main =====
 
 WEBHOOK_PATH = "/webhook"
@@ -743,6 +700,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
