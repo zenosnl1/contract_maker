@@ -8,7 +8,7 @@ import asyncio
 import requests
 from enum import IntEnum
 from core.utils import build_contract_code
-from core.constants import FIELDS, QUESTIONS
+from core.constants import FIELDS, QUESTIONS, FlowState
 from core.constants import CONTRACT_TEMPLATE, ACT_TEMPLATE
 from reports.excel import build_stats_excel
 from db.client import (
@@ -38,11 +38,6 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 
 TOKEN = os.environ["BOT_TOKEN"]
-
-class FlowState(IntEnum):
-    MENU = 0
-    FILLING = 1
-    CONFIRM_SAVE = 2
 
 # ===== Word replacement =====
 
@@ -700,6 +695,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
