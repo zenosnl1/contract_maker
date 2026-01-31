@@ -646,6 +646,7 @@ async def edit_enter_code_handler(update: Update, context: ContextTypes.DEFAULT_
         return FlowState.EDIT_ENTER_CODE
 
     context.user_data["edit_contract"] = contract
+    context.user_data["close_contract_code"] = code
 
     await update.message.reply_text(
         "Что сделать с договором?",
@@ -766,10 +767,10 @@ async def finalize_close(update, context):
     c = context.user_data["edit_contract"]
 
     close_contract(
-        contract_code=context.user_data["close_contract_code"],
-        actual_checkout_date=context.user_data["close_actual_date"],
-        returned_deposit=context.user_data["close_returned_deposit"],
-        deposit_comment=context.user_data.get("close_comment"),
+        contract_code=context.user_data["edit_contract"]["contract_code"],
+        actual_checkout_date=context.user_data["actual_end_date"],
+        returned_deposit=context.user_data["actual_returned_deposit"],
+        deposit_comment=context.user_data.get("close_reason"),
     )
 
     await update.message.reply_text(
@@ -883,6 +884,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
