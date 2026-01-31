@@ -15,6 +15,8 @@ from db.client import (
     fetch_all_contracts,
     fetch_active_contracts,
     save_contract_to_db,
+    get_contract_by_code,
+    close_contract,
 )
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
@@ -752,6 +754,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
