@@ -771,6 +771,7 @@ async def finalize_close(update, context):
         actual_checkout_date=context.user_data["actual_end_date"],
         returned_deposit=context.user_data["actual_returned_deposit"],
         deposit_comment=context.user_data.get("close_reason"),
+        "is_closed": True,
     )
 
     await update.message.reply_text(
@@ -884,6 +885,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
