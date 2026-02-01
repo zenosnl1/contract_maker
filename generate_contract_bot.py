@@ -108,7 +108,7 @@ def start_keyboard():
         [InlineKeyboardButton("▶️ Начать оформление", callback_data="START_FLOW")],
         [InlineKeyboardButton("📥 Импорт договора", callback_data="MENU_IMPORT")],
         [InlineKeyboardButton("✏️ Редактировать договор", callback_data="MENU_EDIT")],
-        [InlineKeyboardButton("📊 Статистика", callback_data="MENU_STATS")],
+        [InlineKeyboardButton("📊 Статистика", callback_data="MENU_STATS_MENU")],
         [InlineKeyboardButton("👥 Текущие жильцы", callback_data="MENU_ACTIVE")],
     ])
 
@@ -317,6 +317,21 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.message.reply_text(
         "Главное меню:",
         reply_markup=start_keyboard(),
+    )
+
+    return FlowState.MENU
+
+async def stats_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text(
+        "Выберите тип отчёта:",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("📊 Общая статистика", callback_data="STATS_GENERAL")],
+            [InlineKeyboardButton("💰 Финансовый отчёт", callback_data="STATS_FINANCE")],
+        ])
     )
 
     return FlowState.MENU
@@ -832,7 +847,9 @@ def main():
                 CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"),
                 CallbackQueryHandler(import_flow_callback, pattern="^MENU_IMPORT$"),
                 CallbackQueryHandler(edit_menu_callback, pattern="^MENU_EDIT$"),
-                CallbackQueryHandler(stats_callback, pattern="^MENU_STATS$"),
+                CallbackQueryHandler(stats_menu_callback, pattern="^MENU_STATS_MENU$"),
+                CallbackQueryHandler(stats_callback, pattern="^STATS_GENERAL$"),
+                CallbackQueryHandler(stats_finance_callback, pattern="^STATS_FINANCE$"),
                 CallbackQueryHandler(active_callback, pattern="^MENU_ACTIVE$"),
             ],
     
@@ -900,6 +917,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
