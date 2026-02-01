@@ -1331,7 +1331,7 @@ async def finalize_close(update, context):
     safe_code = c["contract_code"].replace("/", "_")
 
     path = build_checkout_act(
-        template_path="templates/checkout_act.docx",
+        template_path=CHECKOUT_ACT_TEMPLATE,
         output_path=f"checkout_act_{safe_code}.docx",
         contract=contract,
         violations=violations,
@@ -1491,6 +1491,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
