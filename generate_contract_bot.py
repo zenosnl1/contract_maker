@@ -108,6 +108,7 @@ def start_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("▶️ Начать оформление", callback_data="START_FLOW")],
         [InlineKeyboardButton("📥 Импорт договора", callback_data="MENU_IMPORT")],
+        [InlineKeyboardButton("🚨 Отметить нарушение", callback_data="MENU_VIOLATION")],
         [InlineKeyboardButton("✏️ Редактировать договор", callback_data="MENU_EDIT")],
         [InlineKeyboardButton("📊 Статистика", callback_data="MENU_STATS_MENU")],
         [InlineKeyboardButton("👥 Текущие жильцы", callback_data="MENU_ACTIVE")],
@@ -199,6 +200,128 @@ def add_page_numbers(doc):
     run._r.append(fldChar1)
     run._r.append(instrText)
     run._r.append(fldChar2)
+
+async def violation_start_callback(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    rows = fetch_active_contracts()
+
+    if not rows:
+        await query.edit_message_text(
+            "Сейчас нет активных жильцов."
+        )
+        return FlowState.MENU
+
+    buttons = []
+
+    for r in rows:
+        label = f"{r['flat_number']} — {r['client_name']}"
+        buttons.append([
+            InlineKeyboardButton(
+                label,
+                callback_data=f"VIOL_FLAT:{r['contract_code']}",
+            )
+        ])
+
+    await query.edit_message_text(
+        "Выберите помещение:",
+        reply_markup=InlineKeyboardMarkup(buttons),
+    )
+
+    return FlowState.VIOLATION_SELECT_FLAT
+
+async def violation_select_flat(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    code = query.data.split(":")[1]
+
+    contract = get_contract_by_code(code)
+
+    context.user_data["violation_contract"] = contract
+
+    buttons = [
+        [InlineKeyboardButton("🚬 Курение в помещении", callback_data="VIOL_REASON:smoking")],
+        [InlineKeyboardButton("🔊 Нарушение режима тишины", callback_data="VIOL_REASON:noise")],
+        [InlineKeyboardButton("🛠 Повреждение имущества / оснащения", callback_data="VIOL_REASON:damage")],
+        [InlineKeyboardButton("🧹 Помещение оставлено в грязном состоянии", callback_data="VIOL_REASON:dirty")],
+    ]
+
+    await query.edit_message_text(
+        "Укажите причину нарушения:",
+        reply_markup=InlineKeyboardMarkup(buttons),
+    )
+
+    return FlowState.VIOLATION_SELECT_REASON
+
+async def violation_select_reason(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    reason = query.data.split(":")[1]
+
+    context.user_data["violation_reason"] = reason
+
+    await query.edit_message_text(
+        "Введите сумму (€), которая будет удержана из депозита:"
+    )
+
+    return FlowState.VIOLATION_ENTER_AMOUNT
+
+async def violation_enter_amount(update, context):
+
+    val = update.message.text.strip()
+
+    if not val.isdigit():
+        await update.message.reply_text("Введите сумму цифрами.")
+        return FlowState.VIOLATION_ENTER_AMOUNT
+
+    context.user_data["violation_amount"] = int(val)
+
+    c = context.user_data["violation_contract"]
+
+    await update.message.reply_text(
+        "📋 Проверьте данные:\n\n"
+        f"🏠 Помещение: {c['flat_number']}\n"
+        f"👤 Клиент: {c['client_name']}\n"
+        f"🚨 Причина: {context.user_data['violation_reason']}\n"
+        f"💶 Сумма удержания: {val} €\n\n"
+        "Продолжить?",
+        reply_markup=InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("✅ Да", callback_data="VIOL_CONFIRM"),
+                InlineKeyboardButton("❌ Отмена", callback_data="VIOL_CANCEL"),
+            ]
+        ])
+    )
+
+    return FlowState.VIOLATION_CONFIRM
+
+async def violation_confirm(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    # пока просто сохраняем в памяти / лог
+    context.user_data["last_violation"] = {
+        "contract_code": context.user_data["violation_contract"]["contract_code"],
+        "reason": context.user_data["violation_reason"],
+        "amount": context.user_data["violation_amount"],
+    }
+
+    await query.edit_message_text("✅ Нарушение зафиксировано.")
+
+    await query.message.reply_text(
+        "Главное меню:",
+        reply_markup=start_keyboard(),
+    )
+
+    return FlowState.MENU
+
 
 async def import_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -873,6 +996,7 @@ def main():
             FlowState.MENU: [
                 CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"),
                 CallbackQueryHandler(import_flow_callback, pattern="^MENU_IMPORT$"),
+                CallbackQueryHandler(violation_start_callback, pattern="^MENU_VIOLATION$"),
                 CallbackQueryHandler(edit_menu_callback, pattern="^MENU_EDIT$"),
                 CallbackQueryHandler(stats_menu_callback, pattern="^MENU_STATS_MENU$"),
                 CallbackQueryHandler(stats_callback, pattern="^STATS_GENERAL$"),
@@ -922,6 +1046,21 @@ def main():
             FlowState.CLOSE_ENTER_REASON: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, close_enter_reason),
             ],
+            FlowState.VIOLATION_SELECT_FLAT: [
+                CallbackQueryHandler(violation_select_flat, pattern="^VIOL_FLAT:"),
+            ],
+            
+            FlowState.VIOLATION_SELECT_REASON: [
+                CallbackQueryHandler(violation_select_reason, pattern="^VIOL_REASON:"),
+            ],
+            
+            FlowState.VIOLATION_ENTER_AMOUNT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, violation_enter_amount),
+            ],
+            
+            FlowState.VIOLATION_CONFIRM: [
+                CallbackQueryHandler(violation_confirm, pattern="^VIOL_CONFIRM$"),
+            ],
         },
         fallbacks=[CommandHandler("stop", stop)],
         allow_reentry=True,
@@ -944,6 +1083,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
