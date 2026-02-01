@@ -5,13 +5,13 @@ from datetime import datetime
 
 def build_stats_excel(rows):
 
+    # сортировка от новых к старым по дате заезда
     rows = sorted(
-            rows,
-            key=lambda r: datetime.fromisoformat(r["start_date"])
-            if r.get("start_date")
-            else datetime.min,
-            reverse=True,
-        )
+        rows,
+        key=lambda r: r.get("start_date") or "",
+        reverse=True,
+    )
+
     
     wb = Workbook()
 
