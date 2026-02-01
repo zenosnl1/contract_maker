@@ -23,6 +23,8 @@ class FlowState(IntEnum):
 
     CLOSE_CONFIRM_VIOLATIONS = 60
 
+    EDIT_SELECT_ACTIVE = 70
+
 FIELDS = [
     "FLAT_NUMBER",
     "CLIENT_NAME",
