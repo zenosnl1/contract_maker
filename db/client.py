@@ -138,7 +138,6 @@ def close_contract_full(
     initiator: str | None,
     early_reason: str | None,
     manual_refund: int | None,
-    act_path: str,
 ):
 
     contract = get_contract_by_code(contract_code)
@@ -218,7 +217,6 @@ def close_contract_full(
         "final_refund_amount": refund,
         "extra_due_amount": extra_due,
 
-        "checkout_act_path": act_path,
         "is_closed": True,
     }
 
