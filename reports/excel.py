@@ -53,12 +53,39 @@ def build_stats_excel(rows):
 
     # ====== ДОГОВОРЫ ======
 
-    ws2 = wb.create_sheet("Договоры")
+   # ====== ДОГОВОРЫ ======
 
+    ws2 = wb.create_sheet("Договоры")
+    
     if not rows:
         return None
-
+    
+    # желаемый порядок в начале
+    preferred = [
+        "contract_code",
+        "flat_number",
+        "client_name",
+        "client_number",
+        "start_date",
+        "end_date",
+        "actual_checkout_date",
+        "nights",
+        "price_per_day",
+        "total_price",
+        "deposit",
+        "returned_deposit",
+        "deposit_comment",
+        "is_closed",
+    ]
+    
+    # все реально пришедшие поля
+    all_keys = list(rows[0].keys())
+    
+    # объединяем: сначала preferred, потом остальное
+    keys = preferred + [k for k in all_keys if k not in preferred]
+    
     headers_map = {
+        "contract_code": "Код договора",
         "flat_number": "Помещение",
         "client_name": "Имя клиента",
         "client_id": "Документ",
@@ -67,16 +94,19 @@ def build_stats_excel(rows):
         "client_number": "Телефон",
         "start_date": "Дата заезда",
         "end_date": "Дата выезда",
+        "actual_checkout_date": "Фактический выезд",
         "nights": "Ночей",
         "price_per_day": "Цена / ночь",
         "total_price": "Общая сумма",
         "deposit": "Депозит",
-        "checkout_time": "Время выезда",
+        "returned_deposit": "Возвращено",
+        "deposit_comment": "Комментарий",
+        "is_closed": "Закрыт",
     }
+    
+    # заголовки
+    ws2.append([headers_map.get(k, k) for k in keys])
 
-    keys = list(headers_map.keys())
-
-    ws2.append([headers_map[k] for k in keys])
 
     # ---- Заголовки ----
 
