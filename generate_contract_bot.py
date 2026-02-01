@@ -507,6 +507,12 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return FlowState.FILLING
 
+    if field in ["MAX_PEOPLE_DAY", "MAX_PEOPLE_NIGHT"]:
+        if not text.isdigit():
+            await update.message.reply_text(
+                "❌ Введите число, например: 4"
+            )
+            return FlowState.FILLING
 
     if field == "PRICE_PER_DAY":
         if not text.isdigit():
@@ -938,6 +944,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
