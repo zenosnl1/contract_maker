@@ -4,7 +4,7 @@ import http.server
 import socketserver
 import os
 from core.constants import FIELDS, QUESTIONS, FlowState
-from core.constants import CONTRACT_TEMPLATE, ACT_TEMPLATE
+from core.constants import CONTRACT_TEMPLATE, ACT_TEMPLATE, CHECKOUT_ACT_TEMPLATE
 from core.checkout_act import build_checkout_act
 from reports.excel import build_stats_excel
 from reports.finance import build_finance_report
@@ -1329,7 +1329,7 @@ async def finalize_close(update, context):
     violations = fetch_contract_violations(c["contract_code"])
 
     path = build_checkout_act(
-        template_path="templates/template_checkout_act.docx",
+        template_path=CHECKOUT_ACT_TEMPLATE,
         output_path=f"checkout_act_{c['contract_code']}.docx",
         contract=contract,
         violations=violations,
@@ -1489,6 +1489,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
