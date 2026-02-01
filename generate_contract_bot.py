@@ -227,6 +227,45 @@ async def violations_menu_callback(update, context):
 
     return FlowState.MENU
 
+async def close_show_violations(update, context):
+
+    c = context.user_data["edit_contract"]
+
+    violations = fetch_contract_violations(c["contract_code"])
+
+    if not violations:
+        context.user_data["close_total_penalty"] = 0
+        return await finalize_close(update, context)
+
+    total = sum(int(v["amount"]) for v in violations)
+
+    context.user_data["close_total_penalty"] = total
+
+    lines = [
+        "📋 Найдены нарушения:\n"
+    ]
+
+    for v in violations:
+        label = VIOLATION_REASONS.get(v["violation_type"], v["violation_type"])
+        lines.append(f"• {label} — {v['amount']}€")
+
+    lines.append(f"\n💶 Итого удержание: {total} €")
+    lines.append("\nЗакрыть договор?")
+
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("✅ Подтвердить", callback_data="CLOSE_CONFIRM"),
+            InlineKeyboardButton("❌ Отмена", callback_data="CLOSE_CANCEL"),
+        ]
+    ])
+
+    if update.callback_query:
+        await update.callback_query.edit_message_text("\n".join(lines), reply_markup=keyboard)
+    else:
+        await update.message.reply_text("\n".join(lines), reply_markup=keyboard)
+
+    return FlowState.CLOSE_CONFIRM_VIOLATIONS
+
 async def violation_cancel(update, context):
 
     query = update.callback_query
@@ -1006,6 +1045,22 @@ async def close_contract_start(update: Update, context: ContextTypes.DEFAULT_TYP
 
     return FlowState.CLOSE_IS_EARLY
 
+async def close_cancel(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text(
+        "❌ Закрытие договора отменено.",
+    )
+
+    await query.message.reply_text(
+        "Главное меню:",
+        reply_markup=start_keyboard(),
+    )
+
+    return FlowState.MENU
+
 async def close_early_yes(update, context):
 
     query = update.callback_query
@@ -1034,7 +1089,7 @@ async def close_early_no(update, context):
 
     context.user_data["actual_end_date"] = planned_end
 
-    return await finalize_close(update, context)
+    return await close_show_violations(update, context)
 
 async def close_today(update, context):
 
@@ -1043,7 +1098,7 @@ async def close_today(update, context):
 
     context.user_data["actual_end_date"] = datetime.today().date()
 
-    return await finalize_close(update, context)
+    return await close_show_violations(update, context)
 
 async def close_manual(update, context):
 
@@ -1064,7 +1119,7 @@ async def close_receive_date(update, context):
 
     context.user_data["actual_end_date"] = d
 
-    return await finalize_close(update, context)
+    return await close_show_violations(update, context)
 
 async def finalize_close(update, context):
 
@@ -1177,6 +1232,10 @@ def main():
             FlowState.VIOLATION_DELETE_SELECT_ITEM: [
                 CallbackQueryHandler(violation_delete_item, pattern="^VIOL_DEL_ITEM:"),
             ],
+            FlowState.CLOSE_CONFIRM_VIOLATIONS: [
+                CallbackQueryHandler(finalize_close, pattern="^CLOSE_CONFIRM$"),
+                CallbackQueryHandler(close_cancel, pattern="^CLOSE_CANCEL$"),
+            ],
         },
         fallbacks=[CommandHandler("stop", stop)],
         allow_reentry=True,
@@ -1199,6 +1258,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
