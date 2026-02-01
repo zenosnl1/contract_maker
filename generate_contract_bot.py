@@ -1192,8 +1192,6 @@ async def close_show_preview(update, context):
 
     c = context.user_data["edit_contract"]
 
-    act_tmp_path = f"act_preview_{c['contract_code']}.docx"
-
     result = close_contract_full(
         contract_code=c["contract_code"],
         actual_checkout_date=context.user_data["actual_end_date"],
@@ -1201,11 +1199,9 @@ async def close_show_preview(update, context):
         initiator=context.user_data.get("early_initiator"),
         early_reason=context.user_data.get("early_reason"),
         manual_refund=context.user_data.get("manual_refund"),
-        act_path=act_tmp_path,
     )
 
     context.user_data["close_calc"] = result
-    context.user_data["act_path"] = act_tmp_path
 
     lines = [
         "📋 Предпросмотр закрытия:\n",
@@ -1317,20 +1313,15 @@ async def close_receive_date(update, context):
 
 async def finalize_close(update, context):
 
-    path = context.user_data["act_path"]
-
     if update.callback_query:
         await update.callback_query.answer()
         await update.callback_query.edit_message_text("📄 Акт сформирован.")
-
-        await update.callback_query.message.reply_document(open(path, "rb"))
 
         await update.callback_query.message.reply_text(
             "Главное меню:",
             reply_markup=start_keyboard(),
         )
     else:
-        await update.message.reply_document(open(path, "rb"))
         await update.message.reply_text(
             "Главное меню:",
             reply_markup=start_keyboard(),
@@ -1481,6 +1472,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
