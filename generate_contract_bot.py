@@ -234,6 +234,27 @@ async def violations_menu_callback(update, context):
 
     return FlowState.MENU
 
+async def violation_cancel(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    # очищаем временные данные
+    context.user_data.pop("violation_contract", None)
+    context.user_data.pop("violation_reason", None)
+    context.user_data.pop("violation_amount", None)
+
+    await query.edit_message_text(
+        "❌ Отменено.",
+    )
+
+    await query.message.reply_text(
+        "Главное меню:",
+        reply_markup=start_keyboard(),
+    )
+
+    return FlowState.MENU
+
 async def back_to_menu_callback(update, context):
 
     query = update.callback_query
@@ -1162,6 +1183,7 @@ def main():
             
             FlowState.VIOLATION_CONFIRM: [
                 CallbackQueryHandler(violation_confirm, pattern="^VIOL_CONFIRM$"),
+                CallbackQueryHandler(violation_cancel, pattern="^VIOL_CANCEL$"),
             ],
             FlowState.VIOLATION_DELETE_SELECT_FLAT: [
                 CallbackQueryHandler(violation_delete_select_flat, pattern="^VIOL_DEL_FLAT:"),
@@ -1192,6 +1214,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
