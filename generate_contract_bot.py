@@ -19,6 +19,7 @@ from db.client import (
     get_contract_by_code,
     insert_violation,
     close_contract_with_violations,
+    delete_violation,
 )
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
@@ -394,6 +395,94 @@ async def import_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     )
 
     return FlowState.FILLING
+
+# ======================================================
+# Violations delete flow
+# ======================================================
+
+async def violation_delete_start(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    rows = fetch_active_contracts()
+
+    if not rows:
+        await query.edit_message_text("Нет активных договоров.")
+        return FlowState.MENU
+
+    buttons = []
+
+    for r in rows:
+        label = f"{r['flat_number']} — {r['client_name']}"
+        buttons.append([
+            InlineKeyboardButton(
+                label,
+                callback_data=f"VIOL_DEL_FLAT:{r['contract_code']}",
+            )
+        ])
+
+    await query.edit_message_text(
+        "Выберите помещение:",
+        reply_markup=InlineKeyboardMarkup(buttons),
+    )
+
+    return FlowState.VIOLATION_DELETE_SELECT_FLAT
+
+async def violation_delete_select_flat(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    code = query.data.split(":")[1]
+
+    context.user_data["violation_delete_code"] = code
+
+    violations = fetch_contract_violations(code)
+
+    if not violations:
+        await query.edit_message_text(
+            "По этому договору нет нарушений.",
+            reply_markup=start_keyboard(),
+        )
+        return FlowState.MENU
+
+    buttons = []
+
+    for v in violations:
+        label = f"{VIOLATION_REASONS[v['violation_type']]} — {v['amount']}€"
+        buttons.append([
+            InlineKeyboardButton(
+                label,
+                callback_data=f"VIOL_DEL_ITEM:{v['id']}",
+            )
+        ])
+
+    await query.edit_message_text(
+        "Выберите нарушение для удаления:",
+        reply_markup=InlineKeyboardMarkup(buttons),
+    )
+
+    return FlowState.VIOLATION_DELETE_SELECT_ITEM
+
+async def violation_delete_item(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    vid = query.data.split(":")[1]
+
+    delete_violation(vid)
+
+    await query.edit_message_text("✅ Нарушение удалено.")
+
+    await query.message.reply_text(
+        "Главное меню:",
+        reply_markup=start_keyboard(),
+    )
+
+    return FlowState.MENU
+
 
 def generate_docs(data):
     safe = data["CLIENT_NAME"].replace(" ", "_")
@@ -1016,6 +1105,7 @@ def main():
                 CallbackQueryHandler(import_flow_callback, pattern="^MENU_IMPORT$"),
                 CallbackQueryHandler(violations_menu_callback, pattern="^MENU_VIOLATIONS_MENU$"),
                 CallbackQueryHandler(violation_start_callback, pattern="^VIOL_ADD$"),
+                CallbackQueryHandler(violation_delete_start, pattern="^VIOL_DELETE$"),
                 CallbackQueryHandler(back_to_menu_callback, pattern="^BACK_TO_MENU$"),
                 CallbackQueryHandler(edit_menu_callback, pattern="^MENU_EDIT$"),
                 CallbackQueryHandler(stats_menu_callback, pattern="^MENU_STATS_MENU$"),
@@ -1073,6 +1163,13 @@ def main():
             FlowState.VIOLATION_CONFIRM: [
                 CallbackQueryHandler(violation_confirm, pattern="^VIOL_CONFIRM$"),
             ],
+            FlowState.VIOLATION_DELETE_SELECT_FLAT: [
+                CallbackQueryHandler(violation_delete_select_flat, pattern="^VIOL_DEL_FLAT:"),
+            ],
+            
+            FlowState.VIOLATION_DELETE_SELECT_ITEM: [
+                CallbackQueryHandler(violation_delete_item, pattern="^VIOL_DEL_ITEM:"),
+            ],
         },
         fallbacks=[CommandHandler("stop", stop)],
         allow_reentry=True,
@@ -1095,6 +1192,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
