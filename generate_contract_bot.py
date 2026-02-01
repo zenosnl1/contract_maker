@@ -11,6 +11,7 @@ from core.utils import build_contract_code
 from core.constants import FIELDS, QUESTIONS, FlowState
 from core.constants import CONTRACT_TEMPLATE, ACT_TEMPLATE
 from reports.excel import build_stats_excel
+from reports.finance import build_finance_report
 from db.client import (
     fetch_all_contracts,
     fetch_active_contracts,
@@ -332,6 +333,26 @@ async def stats_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
             [InlineKeyboardButton("📊 Общая статистика", callback_data="STATS_GENERAL")],
             [InlineKeyboardButton("💰 Финансовый отчёт", callback_data="STATS_FINANCE")],
         ])
+    )
+
+    return FlowState.MENU
+
+async def stats_finance_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.callback_query
+    await query.answer()
+
+    rows = fetch_all_contracts()
+
+    await query.edit_message_text("💰 Формирую финансовый отчёт...")
+
+    path = build_finance_report(rows)
+
+    await query.message.reply_document(open(path, "rb"))
+
+    await query.message.reply_text(
+        "Главное меню:",
+        reply_markup=start_keyboard(),
     )
 
     return FlowState.MENU
@@ -917,6 +938,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
