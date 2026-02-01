@@ -169,15 +169,93 @@ def get_contract_by_code(contract_code: str):
     return rows[0]
 
 
-def insert_contract(payload):
+# ======================================================
+# Violations
+# ======================================================
+
+def insert_violation(payload: dict):
+
+    url = SUPABASE_URL + "/rest/v1/violations"
+
     r = requests.post(
-        f"{SUPABASE_URL}/rest/v1/contracts",
+        url,
         json=payload,
         headers=HEADERS,
         timeout=10,
     )
 
-    print("🟡 Supabase INSERT:", r.status_code, r.text)
+    print("🟡 VIOLATION INSERT:", r.status_code, r.text)
 
     r.raise_for_status()
+
+
+def fetch_contract_violations(contract_code: str):
+
+    url = (
+        SUPABASE_URL
+        + "/rest/v1/violations"
+        + f"?contract_code=eq.{contract_code}"
+    )
+
+    r = requests.get(url, headers=HEADERS, timeout=10)
+    r.raise_for_status()
+
+    return r.json()
+
+
+# ======================================================
+# Override close_contract logic
+# ======================================================
+
+def close_contract_with_violations(
+    contract_code: str,
+    actual_checkout_date: date,
+):
+
+    contract = get_contract_by_code(contract_code)
+
+    if not contract:
+        raise ValueError("Contract not found")
+
+    if contract["is_closed"]:
+        raise ValueError("Contract already closed")
+
+    violations = fetch_contract_violations(contract_code)
+
+    total_penalty = sum(int(v["amount"]) for v in violations)
+
+    deposit = int(contract["deposit"])
+
+    returned = max(0, deposit - total_penalty)
+
+    comment_parts = [
+        f"{v['violation_type']}:{v['amount']}€"
+        for v in violations
+    ]
+
+    deposit_comment = "; ".join(comment_parts) if comment_parts else None
+
+    url = (
+        SUPABASE_URL
+        + f"/rest/v1/contracts?contract_code=eq.{contract_code}"
+    )
+
+    payload = {
+        "actual_checkout_date": actual_checkout_date.isoformat(),
+        "returned_deposit": returned,
+        "deposit_comment": deposit_comment,
+        "is_closed": True,
+    }
+
+    r = requests.patch(
+        url,
+        json=payload,
+        headers=HEADERS,
+        timeout=10,
+    )
+
+    print("🟡 CLOSE WITH VIOLATIONS:", r.status_code, r.text)
+
+    r.raise_for_status()
+
 
