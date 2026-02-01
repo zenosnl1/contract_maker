@@ -14,10 +14,13 @@ HEADERS = {
 
 def fetch_all_contracts():
     r = requests.get(
-        f"{SUPABASE_URL}/rest/v1/contracts?select=*",
+        f"{SUPABASE_URL}/rest/v1/contracts"
+        f"?select=*"
+        f"&order=start_date.desc",
         headers=HEADERS,
         timeout=10,
     )
+
     r.raise_for_status()
     return r.json()
 
