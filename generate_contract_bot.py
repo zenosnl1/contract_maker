@@ -109,7 +109,7 @@ def start_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("▶️ Начать оформление", callback_data="START_FLOW")],
         [InlineKeyboardButton("📥 Импорт договора", callback_data="MENU_IMPORT")],
-        [InlineKeyboardButton("🚨 Отметить нарушение", callback_data="MENU_VIOLATION")],
+        [InlineKeyboardButton("🚨 Нарушения", callback_data="MENU_VIOLATIONS_MENU")],
         [InlineKeyboardButton("✏️ Редактировать договор", callback_data="MENU_EDIT")],
         [InlineKeyboardButton("📊 Статистика", callback_data="MENU_STATS_MENU")],
         [InlineKeyboardButton("👥 Текущие жильцы", callback_data="MENU_ACTIVE")],
@@ -212,6 +212,38 @@ VIOLATION_REASONS = {
     "damage": "Повреждение помещения или оснащения",
     "dirty": "Помещение оставлено в ненадлежащем состоянии",
 }
+
+# ======================================================
+# Violations menu
+# ======================================================
+
+async def violations_menu_callback(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text(
+        "🚨 Нарушения\n\nВыберите действие:",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("➕ Отметить нарушение", callback_data="VIOL_ADD")],
+            [InlineKeyboardButton("🗑 Удалить нарушение", callback_data="VIOL_DELETE")],
+            [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_MENU")],
+        ])
+    )
+
+    return FlowState.MENU
+
+async def back_to_menu_callback(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text(
+        "Главное меню:",
+        reply_markup=start_keyboard(),
+    )
+
+    return FlowState.MENU
 
 
 async def violation_start_callback(update, context):
@@ -982,7 +1014,9 @@ def main():
             FlowState.MENU: [
                 CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"),
                 CallbackQueryHandler(import_flow_callback, pattern="^MENU_IMPORT$"),
-                CallbackQueryHandler(violation_start_callback, pattern="^MENU_VIOLATION$"),
+                CallbackQueryHandler(violations_menu_callback, pattern="^MENU_VIOLATIONS_MENU$"),
+                CallbackQueryHandler(violation_start_callback, pattern="^VIOL_ADD$"),
+                CallbackQueryHandler(back_to_menu_callback, pattern="^BACK_TO_MENU$"),
                 CallbackQueryHandler(edit_menu_callback, pattern="^MENU_EDIT$"),
                 CallbackQueryHandler(stats_menu_callback, pattern="^MENU_STATS_MENU$"),
                 CallbackQueryHandler(stats_callback, pattern="^STATS_GENERAL$"),
@@ -1061,6 +1095,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
