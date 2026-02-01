@@ -128,7 +128,9 @@ def build_finance_report(rows):
                 bucket["realized"] += lived * price
 
                 # фикс-расход на заезд
-                bucket["expenses"] += EXPENSE_PER_BOOKING
+                # расходы учитываем только в месяце заезда
+                if cur.year == start.year and cur.month == start.month:
+                    bucket["expenses"] += EXPENSE_PER_BOOKING
 
             # следующий месяц
             if cur.month == 12:
