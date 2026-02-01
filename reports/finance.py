@@ -61,7 +61,11 @@ def build_finance_report(rows):
         "Реализовано €",
         "Потенциал €",
 
+        "Нереализовано €",
+
         "Расходы €",
+
+        "Чистая прибыль €",
 
         "Загрузка %",
     ]
@@ -84,8 +88,11 @@ def build_finance_report(rows):
     grouped = defaultdict(lambda: defaultdict(lambda: {
         "nights": 0,
         "realized": 0,
+        "unrealized": 0,
         "potential": 0,
         "expenses": 0,
+        "profit": 0,
+        "price": 0,
     }))
 
     today = date.today()
@@ -107,17 +114,18 @@ def build_finance_report(rows):
         while cur < end:
 
             m_start, m_end = month_range(cur.year, cur.month)
+            days_in_month = (m_end - m_start).days
 
             nights = overlap_nights(start, end, m_start, m_end)
 
             if nights:
 
                 bucket = grouped[(cur.year, cur.month)][flat]
+                bucket["price"] = price
 
                 bucket["nights"] += nights
 
-                bucket["potential"] += nights * price
-
+                # --- реализовано ---
                 lived = overlap_nights(
                     start,
                     min(today, end),
@@ -125,10 +133,17 @@ def build_finance_report(rows):
                     m_end,
                 )
 
-                bucket["realized"] += lived * price
+                realized = lived * price
+                bucket["realized"] += realized
 
-                # фикс-расход на заезд
-                # расходы учитываем только в месяце заезда
+                # --- unrealized внутри договора ---
+                unrealized = (nights - lived) * price
+                bucket["unrealized"] += unrealized
+
+                # --- потенциал месяца квартиры ---
+                bucket["potential"] = days_in_month * price
+
+                # --- расходы только в месяце заезда ---
                 if cur.year == start.year and cur.month == start.month:
                     bucket["expenses"] += EXPENSE_PER_BOOKING
 
@@ -142,8 +157,6 @@ def build_finance_report(rows):
     # вывод
     # --------------------------------------------------
 
-    grand_total = 0
-
     for (year, month) in sorted(grouped.keys(), reverse=True):
 
         ws.append([])
@@ -155,24 +168,35 @@ def build_finance_report(rows):
             end_column=len(headers),
         )
 
-        title_cell = ws.cell(ws.max_row, 1)
-        title_cell.font = Font(bold=True)
-        title_cell.alignment = CENTER
-        title_cell.border = GRAY_BORDER
+        title = ws.cell(ws.max_row, 1)
+        title.font = Font(bold=True)
+        title.alignment = CENTER
+        title.border = GRAY_BORDER
 
-        month_total = 0
+        month_realized = 0
+        month_unrealized = 0
         month_potential = 0
-        month_nights = 0
         month_expenses = 0
+        month_profit = 0
+        month_nights = 0
+
+        m_start, m_end = month_range(year, month)
+        days_in_month = (m_end - m_start).days
 
         for flat in sorted(grouped[(year, month)]):
 
             b = grouped[(year, month)][flat]
 
-            month_total += b["realized"]
+            load = round(b["nights"] / days_in_month * 100, 1)
+
+            profit = b["realized"] - b["expenses"]
+
+            month_realized += b["realized"]
+            month_unrealized += b["unrealized"]
             month_potential += b["potential"]
-            month_nights += b["nights"]
             month_expenses += b["expenses"]
+            month_profit += profit
+            month_nights += b["nights"]
 
             ws.append([
                 f"{month:02}.{year}",
@@ -183,60 +207,13 @@ def build_finance_report(rows):
                 f"{b['realized']} €",
                 f"{b['potential']} €",
 
+                f"{b['unrealized']} €",
+
                 f"{b['expenses']} €",
 
-                f"{round(b['nights'] / 30 * 100, 1)} %",
+                f"{profit} €",
+
+                f"{load} %",
             ])
 
-        # ---- итог месяца ----
-
-        ws.append([])
-
-        days_in_month = (
-            month_range(year, month)[1]
-            - month_range(year, month)[0]
-        ).days
-
-        flats_count = len(grouped[(year, month)])
-
-        total_possible_nights = days_in_month * flats_count
-
-        month_load = round(
-            month_nights / total_possible_nights * 100,
-            1,
-        ) if total_possible_nights else 0
-
-        month_profit = month_total - month_expenses
-
-        ws.append([
-            "ИТОГО",
-            f"{flats_count} квартир",
-
-            month_nights,
-
-            f"{month_total} €",
-            f"{month_potential} €",
-
-            f"{month_expenses} €",
-
-            f"{month_load} %",
-        ])
-
-        grand_total += month_profit
-
-    # --------------------------------------------------
-    # форматирование всех ячеек
-    # --------------------------------------------------
-
-    for row in ws.iter_rows():
-        ws.row_dimensions[row[0].row].height = 20
-
-        for cell in row:
-            if cell.value is not None:
-                cell.alignment = CENTER
-                cell.border = GRAY_BORDER
-
-    path = "/tmp/financial_report.xlsx"
-    wb.save(path)
-
-    return path
+        # ---- итог меся
