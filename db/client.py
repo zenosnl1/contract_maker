@@ -86,6 +86,9 @@ def save_contract_to_db(data, files):
         "end_date": end.strftime("%Y-%m-%d"),
         "nights": nights,
 
+        "max_people_day": int(data["MAX_PEOPLE_DAY"]),
+        "max_people_night": int(data["MAX_PEOPLE_NIGHT"]),
+        
         "price_per_day": int(data["PRICE_PER_DAY"]),
         "total_price": int(data["TOTAL_PRICE"]),
         "deposit": int(data["DEPOSIT"]),
