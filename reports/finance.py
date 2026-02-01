@@ -91,8 +91,7 @@ def build_finance_report(rows):
         "unrealized": 0,
         "potential": 0,
         "expenses": 0,
-        "profit": 0,
-        "price": 0,
+        "price_seen": set(),
     }))
 
     today = date.today()
@@ -121,11 +120,10 @@ def build_finance_report(rows):
             if nights:
 
                 bucket = grouped[(cur.year, cur.month)][flat]
-                bucket["price"] = price
 
                 bucket["nights"] += nights
 
-                # --- реализовано ---
+                # ---- реализовано ----
                 lived = overlap_nights(
                     start,
                     min(today, end),
@@ -136,14 +134,16 @@ def build_finance_report(rows):
                 realized = lived * price
                 bucket["realized"] += realized
 
-                # --- unrealized внутри договора ---
+                # ---- нереализовано внутри договора ----
                 unrealized = (nights - lived) * price
                 bucket["unrealized"] += unrealized
 
-                # --- потенциал месяца квартиры ---
-                bucket["potential"] = days_in_month * price
+                # ---- потенциал квартиры за месяц ----
+                # берем максимум по тарифу, если в месяце были разные договоры
+                bucket["price_seen"].add(price)
+                bucket["potential"] = days_in_month * max(bucket["price_seen"])
 
-                # --- расходы только в месяце заезда ---
+                # ---- расходы ТОЛЬКО в месяце заезда ----
                 if cur.year == start.year and cur.month == start.month:
                     bucket["expenses"] += EXPENSE_PER_BOOKING
 
@@ -216,4 +216,48 @@ def build_finance_report(rows):
                 f"{load} %",
             ])
 
-        # ---- итог меся
+        # ---- итог месяца ----
+
+        flats_count = len(grouped[(year, month)])
+        total_possible_nights = flats_count * days_in_month
+
+        month_load = round(
+            month_nights / total_possible_nights * 100,
+            1,
+        ) if total_possible_nights else 0
+
+        ws.append([])
+
+        ws.append([
+            "ИТОГО",
+            f"{flats_count} квартир",
+
+            month_nights,
+
+            f"{month_realized} €",
+            f"{month_potential} €",
+
+            f"{month_unrealized} €",
+
+            f"{month_expenses} €",
+
+            f"{month_profit} €",
+
+            f"{month_load} %",
+        ])
+
+    # --------------------------------------------------
+    # форматирование всех ячеек
+    # --------------------------------------------------
+
+    for row in ws.iter_rows():
+        ws.row_dimensions[row[0].row].height = 20
+
+        for cell in row:
+            if cell.value is not None:
+                cell.alignment = CENTER
+                cell.border = GRAY_BORDER
+
+    path = "/tmp/financial_report.xlsx"
+    wb.save(path)
+    return path
