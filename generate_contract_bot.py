@@ -704,9 +704,17 @@ async def close_early_no(update, context):
     query = update.callback_query
     await query.answer()
 
-    context.user_data["actual_end_date"] = datetime.today().date()
+    contract = context.user_data["edit_contract"]
 
-    await query.edit_message_text("Введите фактически возвращенный депозит:")
+    # берем плановую дату выезда из БД
+    planned_end = datetime.fromisoformat(contract["end_date"]).date()
+
+    context.user_data["actual_end_date"] = planned_end
+
+    await query.edit_message_text(
+        f"📅 Дата закрытия будет: {planned_end.strftime('%d.%m.%Y')}\n\n"
+        "Введите фактически возвращенный депозит:"
+    )
 
     return FlowState.CLOSE_ENTER_DEPOSIT
 
@@ -892,6 +900,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
