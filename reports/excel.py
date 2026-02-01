@@ -3,16 +3,6 @@ from openpyxl.styles import Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from datetime import datetime
 
-def nights_in_month(start, end, month_start, month_end):
-    s = max(start, month_start)
-    e = min(end, month_end)
-
-    if s >= e:
-        return 0
-
-    return (e - s).days
-
-
 def build_stats_excel(rows):
 
     # сортировка от новых к старым по дате заезда
