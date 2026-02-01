@@ -322,52 +322,43 @@ def fetch_violations_between(start_date: str, end_date: str):
 
 def close_contract_with_violations(
     contract_code: str,
-    actual_checkout_date: date,
+    actual_checkout_date,
+    early_checkout: bool,
+    initiator: str | None,
+    early_reason: str | None,
+    manual_refund: int | None,
 ):
-
-    contract = get_contract_by_code(contract_code)
-
-    if not contract:
-        raise ValueError("Contract not found")
-
-    if contract["is_closed"]:
-        raise ValueError("Contract already closed")
-
-    violations = fetch_contract_violations(contract_code)
-
-    total_penalty = sum(int(v["amount"]) for v in violations)
-
-    deposit = int(contract["deposit"])
-
-    returned = max(0, deposit - total_penalty)
-
-    comment_parts = [
-        f"{v['violation_type']}:{v['amount']}€"
-        for v in violations
-    ]
-
-    deposit_comment = "; ".join(comment_parts) if comment_parts else None
-
-    url = (
-        SUPABASE_URL
-        + f"/rest/v1/contracts?contract_code=eq.{contract_code}"
-    )
+    """
+    Закрывает договор и сохраняет параметры досрочного выезда и финальные суммы.
+    """
 
     payload = {
-        "actual_checkout_date": actual_checkout_date.isoformat(),
-        "returned_deposit": returned,
-        "deposit_comment": deposit_comment,
+        "actual_checkout_date": actual_checkout_date,
         "is_closed": True,
+
+        "early_checkout": early_checkout,
+        "early_initiator": initiator,
+        "early_reason": early_reason,
+
+        # если manual_refund None — оставляем как есть (или 0)
+        "final_refund_amount": manual_refund or 0,
     }
 
-    r = requests.patch(
-        url,
-        json=payload,
-        headers=HEADERS,
-        timeout=10,
-    )
+    url = f"{SUPABASE_URL}/rest/v1/contracts?contract_code=eq.{contract_code}"
 
-    print("🟡 CLOSE WITH VIOLATIONS:", r.status_code, r.text)
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
 
-    r.raise_for_status()
+    resp = requests.patch(url, headers=headers, json=payload)
+
+    if not resp.ok:
+        raise RuntimeError(
+            f"close_contract_with_violations failed: {resp.status_code} {resp.text}"
+        )
+
+    return resp.json()
 
