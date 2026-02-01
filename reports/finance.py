@@ -46,7 +46,7 @@ def percent(val):
 
 # ---------- MAIN BUILDER ----------
 
-def build_financial_report(rows):
+def build_finance_report(rows):
 
     wb = Workbook()
     wb.remove(wb.active)
