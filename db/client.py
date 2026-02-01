@@ -105,47 +105,6 @@ def save_contract_to_db(data, files):
     if r.status_code not in (200, 201):
         raise RuntimeError("Supabase insert failed")
 
-def close_contract(
-    contract_code: str,
-    actual_checkout_date: date,
-    returned_deposit: int,
-    deposit_comment: str | None,
-):
-
-    contract = get_contract_by_code(contract_code)
-
-    if not contract:
-        raise ValueError("Contract not found")
-
-    if contract["is_closed"]:
-        raise ValueError("Contract already closed")
-    
-    url = (
-        os.environ["SUPABASE_URL"]
-        + f"/rest/v1/contracts?contract_code=eq.{contract_code}"
-    )
-
-    payload = {
-        "actual_checkout_date": actual_checkout_date.isoformat(),
-        "returned_deposit": returned_deposit,
-        "deposit_comment": deposit_comment,
-        "is_closed": True,
-    }
-
-    headers = {
-        "apikey": os.environ["SUPABASE_KEY"],
-        "Authorization": f"Bearer {os.environ['SUPABASE_KEY']}",
-        "Content-Type": "application/json",
-    }
-
-    r = requests.patch(url, json=payload, headers=headers, timeout=10)
-
-    print("🟡 CLOSE STATUS:", r.status_code)
-    print("🟡 CLOSE BODY:", r.text)
-
-    r.raise_for_status()
-
-
 def get_contract_by_code(contract_code: str):
 
     url = (
