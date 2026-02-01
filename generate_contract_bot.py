@@ -1254,17 +1254,7 @@ async def close_early_yes(update, context):
     query = update.callback_query
     await query.answer()
 
-    await query.edit_message_text(
-        "Использовать сегодняшнюю дату?",
-        reply_markup=InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("Сегодня", callback_data="CLOSE_TODAY"),
-                InlineKeyboardButton("Ввести вручную", callback_data="CLOSE_MANUAL"),
-            ]
-        ])
-    )
-
-    return FlowState.CLOSE_ENTER_DATE
+    return await close_select_initiator(update, context)
 
 async def close_early_no(update, context):
 
@@ -1475,6 +1465,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
