@@ -1,13 +1,8 @@
 import os
 from docx import Document
-import threading
 import http.server
 import socketserver
 import os
-import asyncio
-import requests
-from enum import IntEnum
-from core.utils import build_contract_code
 from core.constants import FIELDS, QUESTIONS, FlowState
 from core.constants import CONTRACT_TEMPLATE, ACT_TEMPLATE
 from reports.excel import build_stats_excel
@@ -18,12 +13,10 @@ from db.client import (
     save_contract_to_db,
     get_contract_by_code,
     insert_violation,
+    fetch_contract_violations,
     close_contract_with_violations,
     delete_violation,
 )
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
 from telegram.ext import ApplicationBuilder
 from telegram import Update
 from telegram.ext import (
@@ -1097,14 +1090,6 @@ WEBHOOK_PATH = "/webhook"
 PORT = int(os.environ.get("PORT", 10000))
 PUBLIC_URL = os.environ.get("PUBLIC_URL")  # будем задать в Render
 
-def run_dummy_server():
-    port = int(os.environ.get("PORT", 10000))
-    handler = Handler
-
-    with socketserver.TCPServer(("", port), handler) as httpd:
-        print(f"🌐 Dummy server running on port {port}")
-        httpd.serve_forever()
-
 def main():
     port = int(os.environ.get("PORT", 10000))
     public_url = os.environ.get("PUBLIC_URL")
@@ -1214,6 +1199,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
