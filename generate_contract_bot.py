@@ -1130,14 +1130,22 @@ async def finalize_close(update, context):
         actual_checkout_date=context.user_data["actual_end_date"],
     )
 
-    await update.message.reply_text(
-        "✅ Договор закрыт.",
-        reply_markup=start_keyboard(),
-    )
+    text = "✅ Договор закрыт."
+
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(text)
+        await update.callback_query.message.reply_text(
+            "Главное меню:",
+            reply_markup=start_keyboard(),
+        )
+    else:
+        await update.message.reply_text(
+            text,
+            reply_markup=start_keyboard(),
+        )
 
     return FlowState.MENU
-
-
 
 # ===== main =====
 
@@ -1258,6 +1266,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
