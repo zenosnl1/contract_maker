@@ -16,6 +16,7 @@ from db.client import (
     fetch_contract_violations,
     close_contract_with_violations,
     delete_violation,
+    close_contract_full,
 )
 from telegram.ext import ApplicationBuilder
 from telegram import Update
@@ -1079,6 +1080,141 @@ async def edit_enter_code_handler(update: Update, context: ContextTypes.DEFAULT_
 
     return FlowState.EDIT_ACTION
 
+# ======================================================
+# Extended close flow with act generation
+# ======================================================
+
+async def close_select_initiator(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data["early_checkout"] = True
+
+    await query.edit_message_text(
+        "Кто инициировал досрочный выезд?",
+        reply_markup=InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("👤 Клиент", callback_data="EARLY_TENANT"),
+                InlineKeyboardButton("🏠 Арендодатель", callback_data="EARLY_LANDLORD"),
+            ]
+        ])
+    )
+
+    return FlowState.CLOSE_SELECT_INITIATOR
+
+
+async def close_initiator_chosen(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    initiator = query.data.replace("EARLY_", "").lower()
+
+    context.user_data["early_initiator"] = initiator
+
+    if initiator == "tenant":
+
+        await query.edit_message_text(
+            "Укажите причину досрочного выезда:"
+        )
+
+        return FlowState.CLOSE_ENTER_EARLY_REASON
+
+    # landlord
+    await query.edit_message_text(
+        "Как определить возврат?",
+        reply_markup=InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("📊 Рассчитать автоматически", callback_data="LANDLORD_AUTO"),
+                InlineKeyboardButton("✍️ Ввести вручную", callback_data="LANDLORD_MANUAL"),
+            ]
+        ])
+    )
+
+    return FlowState.CLOSE_LANDLORD_REFUND_MODE
+
+
+async def close_enter_early_reason(update, context):
+
+    context.user_data["early_reason"] = update.message.text.strip()
+
+    return await close_show_preview(update, context)
+
+
+async def close_landlord_refund_mode(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    mode = query.data
+
+    if mode == "LANDLORD_MANUAL":
+
+        await query.edit_message_text("Введите сумму возврата (€):")
+        return FlowState.CLOSE_ENTER_MANUAL_REFUND
+
+    context.user_data["manual_refund"] = None
+
+    return await close_show_preview(update, context)
+
+
+async def close_enter_manual_refund(update, context):
+
+    txt = update.message.text.strip()
+
+    if not txt.isdigit():
+        await update.message.reply_text("Введите сумму цифрами.")
+        return FlowState.CLOSE_ENTER_MANUAL_REFUND
+
+    context.user_data["manual_refund"] = int(txt)
+
+    return await close_show_preview(update, context)
+
+
+async def close_show_preview(update, context):
+
+    c = context.user_data["edit_contract"]
+
+    act_tmp_path = f"act_preview_{c['contract_code']}.docx"
+
+    result = close_contract_full(
+        contract_code=c["contract_code"],
+        actual_checkout_date=context.user_data["actual_end_date"],
+        early_checkout=True,
+        initiator=context.user_data.get("early_initiator"),
+        early_reason=context.user_data.get("early_reason"),
+        manual_refund=context.user_data.get("manual_refund"),
+        act_path=act_tmp_path,
+    )
+
+    context.user_data["close_calc"] = result
+    context.user_data["act_path"] = act_tmp_path
+
+    lines = [
+        "📋 Предпросмотр закрытия:\n",
+        f"Прожито ночей: {result['lived_nights']}",
+        f"Непрожито → {result['unused']}€",
+        f"Штрафы: {result['penalties']}€",
+        f"Возврат: {result['refund']}€",
+        f"Долг клиента: {result['extra_due']}€",
+        "",
+        "Закрыть договор и сформировать акт?"
+    ]
+
+    kb = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("✅ Подтвердить", callback_data="CLOSE_FINAL_CONFIRM"),
+            InlineKeyboardButton("❌ Отмена", callback_data="CLOSE_CANCEL"),
+        ]
+    ])
+
+    if update.callback_query:
+        await update.callback_query.edit_message_text("\n".join(lines), reply_markup=kb)
+    else:
+        await update.message.reply_text("\n".join(lines), reply_markup=kb)
+
+    return FlowState.CLOSE_PREVIEW_ACT
 
 async def close_contract_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -1175,25 +1311,22 @@ async def close_receive_date(update, context):
 
 async def finalize_close(update, context):
 
-    c = context.user_data["edit_contract"]
-
-    close_contract_with_violations(
-        contract_code=c["contract_code"],
-        actual_checkout_date=context.user_data["actual_end_date"],
-    )
-
-    text = "✅ Договор закрыт."
+    path = context.user_data["act_path"]
 
     if update.callback_query:
         await update.callback_query.answer()
-        await update.callback_query.edit_message_text(text)
+        await update.callback_query.edit_message_text("📄 Акт сформирован.")
+
+        await update.callback_query.message.reply_document(open(path, "rb"))
+
         await update.callback_query.message.reply_text(
             "Главное меню:",
             reply_markup=start_keyboard(),
         )
     else:
+        await update.message.reply_document(open(path, "rb"))
         await update.message.reply_text(
-            text,
+            "Главное меню:",
             reply_markup=start_keyboard(),
         )
 
@@ -1300,6 +1433,26 @@ def main():
                 CallbackQueryHandler(finalize_close, pattern="^CLOSE_CONFIRM$"),
                 CallbackQueryHandler(close_cancel, pattern="^CLOSE_CANCEL$"),
             ],
+            FlowState.CLOSE_SELECT_INITIATOR: [
+                CallbackQueryHandler(close_initiator_chosen, pattern="^EARLY_"),
+            ],
+            
+            FlowState.CLOSE_ENTER_EARLY_REASON: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, close_enter_early_reason),
+            ],
+            
+            FlowState.CLOSE_LANDLORD_REFUND_MODE: [
+                CallbackQueryHandler(close_landlord_refund_mode, pattern="^LANDLORD_"),
+            ],
+            
+            FlowState.CLOSE_ENTER_MANUAL_REFUND: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, close_enter_manual_refund),
+            ],
+            
+            FlowState.CLOSE_PREVIEW_ACT: [
+                CallbackQueryHandler(finalize_close, pattern="^CLOSE_FINAL_CONFIRM$"),
+                CallbackQueryHandler(close_cancel, pattern="^CLOSE_CANCEL$"),
+            ],
         },
         fallbacks=[CommandHandler("stop", stop)],
         allow_reentry=True,
@@ -1322,6 +1475,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
