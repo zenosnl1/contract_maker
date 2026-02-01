@@ -1139,7 +1139,7 @@ async def close_enter_early_reason(update, context):
 
     context.user_data["early_reason"] = update.message.text.strip()
 
-    return await close_show_preview(update, context)
+    return await ask_close_date(update, context)
 
 
 async def close_landlord_refund_mode(update, context):
@@ -1156,8 +1156,7 @@ async def close_landlord_refund_mode(update, context):
 
     context.user_data["manual_refund"] = None
 
-    return await close_show_preview(update, context)
-
+    return await ask_close_date(update, context)
 
 async def close_enter_manual_refund(update, context):
 
@@ -1169,8 +1168,25 @@ async def close_enter_manual_refund(update, context):
 
     context.user_data["manual_refund"] = int(txt)
 
-    return await close_show_preview(update, context)
+    return await ask_close_date(update, context)
 
+async def ask_close_date(update, context):
+
+    kb = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("Сегодня", callback_data="CLOSE_TODAY"),
+            InlineKeyboardButton("Ввести вручную", callback_data="CLOSE_MANUAL"),
+        ]
+    ])
+
+    text = "📅 Укажите фактическую дату выезда:"
+
+    if update.callback_query:
+        await update.callback_query.edit_message_text(text, reply_markup=kb)
+    else:
+        await update.message.reply_text(text, reply_markup=kb)
+
+    return FlowState.CLOSE_ENTER_DATE
 
 async def close_show_preview(update, context):
 
@@ -1276,7 +1292,7 @@ async def close_today(update, context):
 
     context.user_data["actual_end_date"] = datetime.today().date()
 
-    return await close_show_violations(update, context)
+    return await close_show_preview(update, context)
 
 async def close_manual(update, context):
 
@@ -1297,7 +1313,7 @@ async def close_receive_date(update, context):
 
     context.user_data["actual_end_date"] = d
 
-    return await close_show_violations(update, context)
+    return await close_show_preview(update, context)
 
 async def finalize_close(update, context):
 
@@ -1465,6 +1481,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
