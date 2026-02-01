@@ -645,6 +645,13 @@ async def edit_enter_code_handler(update: Update, context: ContextTypes.DEFAULT_
         await update.message.reply_text("❌ Договор не найден. Попробуйте снова.")
         return FlowState.EDIT_ENTER_CODE
 
+    if contract.get("is_closed"):
+        await update.message.reply_text(
+            "⚠️ Этот договор уже закрыт.\n\n"
+            "Выберите другой номер договора.",
+        )
+        return FlowState.EDIT_ENTER_CODE
+
     context.user_data["edit_contract"] = contract
     context.user_data["close_contract_code"] = code
 
@@ -656,6 +663,7 @@ async def edit_enter_code_handler(update: Update, context: ContextTypes.DEFAULT_
     )
 
     return FlowState.EDIT_ACTION
+
 
 async def close_contract_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -884,6 +892,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
