@@ -1,13 +1,13 @@
 from datetime import date, timedelta
+from calendar import monthrange
 from collections import defaultdict
+
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
-from calendar import monthrange
-
-EXPENSE_PER_STAY = 10
+from openpyxl.utils import get_column_letter
 
 
-GRAY_BORDER = Border(
+GRAY = Border(
     left=Side(style="thin", color="CCCCCC"),
     right=Side(style="thin", color="CCCCCC"),
     top=Side(style="thin", color="CCCCCC"),
@@ -17,173 +17,214 @@ GRAY_BORDER = Border(
 CENTER = Alignment(horizontal="center", vertical="center")
 
 
-def style_sheet(ws):
+# ---------- helpers ----------
 
-    widths = [16, 12, 14, 14, 16, 20, 22, 14]
-
-    for i, w in enumerate(widths, 1):
-        ws.column_dimensions[chr(64 + i)].width = w
-
-    for row in ws.iter_rows():
-        ws.row_dimensions[row[0].row].height = 22
-
-        for cell in row:
-            cell.alignment = CENTER
-            cell.border = GRAY_BORDER
+def month_bounds(year: int, month: int):
+    days = monthrange(year, month)[1]
+    return (
+        date(year, month, 1),
+        date(year, month, days + 1),
+        days,
+    )
 
 
-def build_finance_report(contracts):
+def nights_overlap(start, end, m_start, m_end):
+    s = max(start, m_start)
+    e = min(end, m_end)
+    if s >= e:
+        return 0
+    return (e - s).days
+
+
+def euro(val):
+    return f"{int(val)} €"
+
+
+def percent(val):
+    return f"{round(val, 1)} %"
+
+
+# ---------- MAIN BUILDER ----------
+
+def build_financial_report(rows):
 
     wb = Workbook()
     wb.remove(wb.active)
 
-    by_month = defaultdict(list)
+    today = date.today()
 
-    # -----------------------------
-    # раскладываем ночи по месяцам
-    # -----------------------------
+    # группируем по месяцам заезда/выезда
+    contracts_by_month = defaultdict(list)
 
-    for c in contracts:
+    for r in rows:
+        s = date.fromisoformat(r["start_date"])
+        e = date.fromisoformat(r["end_date"])
 
-        start = date.fromisoformat(c["start_date"])
-        end = date.fromisoformat(
-            c.get("actual_checkout_date") or c["end_date"]
-        )
+        cur = date(s.year, s.month, 1)
 
-        cur = start
+        while cur <= e:
+            contracts_by_month[(cur.year, cur.month)].append(r)
 
-        while cur <= end:
-            key = f"{cur.year}-{cur.month:02d}"
-            by_month[key].append(c)
-            cur += timedelta(days=1)
+            if cur.month == 12:
+                cur = date(cur.year + 1, 1, 1)
+            else:
+                cur = date(cur.year, cur.month + 1, 1)
 
-    # -----------------------------
-    # считаем ОБЩУЮ прибыль
-    # -----------------------------
+    grand_total_profit = 0
+    grand_total_nights = 0
 
-    all_profit = 0
-    all_nights = 0
-    all_days = defaultdict(int)
+    for (year, month), contracts in sorted(contracts_by_month.items(), reverse=True):
 
-    for c in contracts:
-        nights = int(c["nights"])
-        price = int(c["price_per_day"])
-        all_profit += nights * price - EXPENSE_PER_STAY
-        all_nights += nights
+        m_start, m_end, days_in_month = month_bounds(year, month)
 
-    # -----------------------------
-    # строим листы
-    # -----------------------------
+        ws = wb.create_sheet(f"{month:02}.{year}")
 
-    for month, rows in sorted(by_month.items(), reverse=True):
+        headers = [
+            "Помещение",
+            "Реализовано",
+            "Потенциально",
+            "Расходы",
+            "Прибыль",
+            "Загрузка",
+            "",
+            "Доля месяца",
+        ]
 
-        ws = wb.create_sheet(month)
+        ws.append(headers)
 
-        ws.append([
-            "Квартира",
-            "Ночей",
-            "Доход (€)",
-            "Расходы (€)",
-            "Чистый доход (€)",
-            "Потенциальная прибыль (€)",
-            "Реализованная прибыль (€)",
-            "Загрузка (%)",
-        ])
+        for col in range(1, len(headers) + 1):
+            ws.column_dimensions[get_column_letter(col)].width = 22
 
-        for c in ws[1]:
-            c.font = Font(bold=True)
+        ws.column_dimensions["H"].width = 66  # доля месяца
 
-        year, m = map(int, month.split("-"))
-        days_in_month = monthrange(year, m)[1]
+        ws.row_dimensions[1].height = 26
 
-        stats = {}
+        for c in range(1, 9):
+            cell = ws.cell(row=1, column=c)
+            cell.font = Font(bold=True)
+            cell.alignment = CENTER
+            cell.border = GRAY
 
-        for c in rows:
+        flats = defaultdict(list)
 
-            flat = c["flat_number"]
-            price = int(c["price_per_day"])
+        for r in contracts:
+            flats[r["flat_number"]].append(r)
 
-            stats.setdefault(flat, {
-                "nights": 0,
-                "income": 0,
-                "stays": set(),
-            })
+        month_profit = 0
+        month_realized = 0
+        month_potential = 0
+        month_cost = 0
+        month_nights = 0
 
-            stats[flat]["nights"] += 1
-            stats[flat]["income"] += price
-            stats[flat]["stays"].add(c["contract_code"])
+        for flat in sorted(flats.keys(), key=lambda x: int(x)):
 
-        sorted_flats = sorted(stats.items(), key=lambda x: int(x[0]))
+            realized = 0
+            potential = 0
+            nights_total = 0
 
-        total_nights = 0
-        total_income = 0
-        total_expenses = 0
-        total_potential = 0
+            for r in flats[flat]:
 
-        for flat, d in sorted_flats:
+                start = date.fromisoformat(r["start_date"])
+                planned_end = date.fromisoformat(r["end_date"])
 
-            expenses = len(d["stays"]) * EXPENSE_PER_STAY
-            net = d["income"] - expenses
+                actual_end = (
+                    date.fromisoformat(r["actual_checkout_date"])
+                    if r.get("actual_checkout_date")
+                    else planned_end
+                )
 
-            potential = days_in_month * (d["income"] // max(d["nights"], 1))
+                price = int(r["price_per_day"])
 
-            load = round(d["nights"] / days_in_month * 100, 1)
+                # --- realized ---
+                real_end = min(today, actual_end)
+
+                realized_nights = nights_overlap(
+                    start,
+                    real_end,
+                    m_start,
+                    m_end,
+                )
+
+                realized += realized_nights * price
+
+                # --- potential ---
+                pot_nights = nights_overlap(
+                    start,
+                    planned_end,
+                    m_start,
+                    m_end,
+                )
+
+                potential += pot_nights * price
+
+                nights_total += pot_nights
+
+            costs = nights_total * 10
+            profit = realized - costs
+
+            load = (nights_total / days_in_month) * 100 if days_in_month else 0
 
             ws.append([
                 flat,
-                d["nights"],
-                d["income"],
-                expenses,
-                net,
-                potential,
-                net,
-                load,
+                euro(realized),
+                euro(potential),
+                euro(costs),
+                euro(profit),
+                percent(load),
+                "",
+                f"{nights_total} ночей / {days_in_month}",
             ])
 
-            total_nights += d["nights"]
-            total_income += d["income"]
-            total_expenses += expenses
-            total_potential += potential
+            row = ws.max_row
+
+            ws.row_dimensions[row].height = 22
+
+            for c in range(1, 9):
+                cell = ws.cell(row=row, column=c)
+                cell.alignment = CENTER
+                cell.border = GRAY
+
+            month_realized += realized
+            month_potential += potential
+            month_cost += costs
+            month_profit += profit
+            month_nights += nights_total
+
+        # ----- TOTALS -----
+
+        ws.append([])
+        ws.append([])
+
+        base = ws.max_row + 1
+
+        totals = [
+            ("Итого реализовано:", euro(month_realized)),
+            ("Итого потенциально:", euro(month_potential)),
+            ("Итого расходы:", euro(month_cost)),
+            ("Итого прибыль:", euro(month_profit)),
+            ("Средняя загрузка:", percent((month_nights / days_in_month) * 100 if days_in_month else 0)),
+        ]
+
+        for label, value in totals:
+            ws.append([label, value])
+
+            r = ws.max_row
+
+            ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=2)
+
+            for c in range(1, 3):
+                ws.cell(row=r, column=c).font = Font(bold=True)
+
+        grand_total_profit += month_profit
+        grand_total_nights += month_nights
 
         ws.append([])
         ws.append([
-            "ИТОГО",
-            total_nights,
-            total_income,
-            total_expenses,
-            total_income - total_expenses,
-            total_potential,
-            total_income - total_expenses,
-            round(total_nights / (days_in_month * len(sorted_flats)) * 100, 1),
+            "Доля месяца от всей прибыли:",
+            percent((month_profit / grand_total_profit) * 100 if grand_total_profit else 0),
         ])
 
-        for cell in ws[ws.max_row]:
-            cell.font = Font(bold=True)
-
-        # -----------------------------
-        # Доля месяца от общего
-        # -----------------------------
-
-        ws.append([])
-        ws.append([
-            "Доля месяца от общей прибыли",
-            "",
-            "",
-            "",
-            f"{round((total_income - total_expenses) / max(all_profit,1) * 100, 1)} %",
-        ])
-
-        ws.append([
-            "Доля месяца от общей загрузки",
-            "",
-            "",
-            "",
-            f"{round(total_nights / max(all_nights,1) * 100, 1)} %",
-        ])
-
-        style_sheet(ws)
-
-    path = "/tmp/finance_report.xlsx"
+    path = "/tmp/financial_report.xlsx"
     wb.save(path)
 
     return path
