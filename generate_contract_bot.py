@@ -5,6 +5,7 @@ import socketserver
 import os
 from core.constants import FIELDS, QUESTIONS, FlowState
 from core.constants import CONTRACT_TEMPLATE, ACT_TEMPLATE
+from core.checkout_act import build_checkout_act
 from reports.excel import build_stats_excel
 from reports.finance import build_finance_report
 from db.client import (
@@ -1313,19 +1314,35 @@ async def close_receive_date(update, context):
 
 async def finalize_close(update, context):
 
-    if update.callback_query:
-        await update.callback_query.answer()
-        await update.callback_query.edit_message_text("📄 Акт сформирован.")
+    c = context.user_data["edit_contract"]
 
-        await update.callback_query.message.reply_text(
-            "Главное меню:",
-            reply_markup=start_keyboard(),
-        )
-    else:
-        await update.message.reply_text(
-            "Главное меню:",
-            reply_markup=start_keyboard(),
-        )
+    close_contract_with_violations(
+        contract_code=c["contract_code"],
+        actual_checkout_date=context.user_data["actual_end_date"],
+        early_checkout=context.user_data.get("early_checkout"),
+        initiator=context.user_data.get("early_initiator"),
+        early_reason=context.user_data.get("early_reason"),
+        manual_refund=context.user_data.get("manual_refund"),
+    )
+
+    contract = get_contract_by_code(c["contract_code"])
+    violations = fetch_contract_violations(c["contract_code"])
+
+    path = build_checkout_act(
+        template_path="templates/template_checkout_act.docx",
+        output_path=f"checkout_act_{c['contract_code']}.docx",
+        contract=contract,
+        violations=violations,
+    )
+
+    msg = update.message or update.callback_query.message
+
+    await msg.reply_document(open(path, "rb"))
+
+    await msg.reply_text(
+        "✅ Договор закрыт и акт сформирован.",
+        reply_markup=start_keyboard(),
+    )
 
     return FlowState.MENU
 
@@ -1472,6 +1489,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
