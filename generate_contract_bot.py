@@ -17,7 +17,8 @@ from db.client import (
     fetch_active_contracts,
     save_contract_to_db,
     get_contract_by_code,
-    close_contract,
+    insert_violation,
+    close_contract_with_violations,
 )
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
@@ -201,6 +202,18 @@ def add_page_numbers(doc):
     run._r.append(instrText)
     run._r.append(fldChar2)
 
+# ======================================================
+# Violations flow
+# ======================================================
+
+VIOLATION_REASONS = {
+    "smoking": "Курение в помещении",
+    "noise": "Нарушение режима тишины",
+    "damage": "Повреждение помещения или оснащения",
+    "dirty": "Помещение оставлено в ненадлежащем состоянии",
+}
+
+
 async def violation_start_callback(update, context):
 
     query = update.callback_query
@@ -232,6 +245,7 @@ async def violation_start_callback(update, context):
 
     return FlowState.VIOLATION_SELECT_FLAT
 
+
 async def violation_select_flat(update, context):
 
     query = update.callback_query
@@ -243,12 +257,15 @@ async def violation_select_flat(update, context):
 
     context.user_data["violation_contract"] = contract
 
-    buttons = [
-        [InlineKeyboardButton("🚬 Курение в помещении", callback_data="VIOL_REASON:smoking")],
-        [InlineKeyboardButton("🔊 Нарушение режима тишины", callback_data="VIOL_REASON:noise")],
-        [InlineKeyboardButton("🛠 Повреждение имущества / оснащения", callback_data="VIOL_REASON:damage")],
-        [InlineKeyboardButton("🧹 Помещение оставлено в грязном состоянии", callback_data="VIOL_REASON:dirty")],
-    ]
+    buttons = []
+
+    for k, label in VIOLATION_REASONS.items():
+        buttons.append([
+            InlineKeyboardButton(
+                label,
+                callback_data=f"VIOL_REASON:{k}",
+            )
+        ])
 
     await query.edit_message_text(
         "Укажите причину нарушения:",
@@ -257,20 +274,22 @@ async def violation_select_flat(update, context):
 
     return FlowState.VIOLATION_SELECT_REASON
 
+
 async def violation_select_reason(update, context):
 
     query = update.callback_query
     await query.answer()
 
-    reason = query.data.split(":")[1]
+    key = query.data.split(":")[1]
 
-    context.user_data["violation_reason"] = reason
+    context.user_data["violation_reason"] = key
 
     await query.edit_message_text(
         "Введите сумму (€), которая будет удержана из депозита:"
     )
 
     return FlowState.VIOLATION_ENTER_AMOUNT
+
 
 async def violation_enter_amount(update, context):
 
@@ -288,7 +307,7 @@ async def violation_enter_amount(update, context):
         "📋 Проверьте данные:\n\n"
         f"🏠 Помещение: {c['flat_number']}\n"
         f"👤 Клиент: {c['client_name']}\n"
-        f"🚨 Причина: {context.user_data['violation_reason']}\n"
+        f"🚨 Причина: {VIOLATION_REASONS[context.user_data['violation_reason']]}\n"
         f"💶 Сумма удержания: {val} €\n\n"
         "Продолжить?",
         reply_markup=InlineKeyboardMarkup([
@@ -301,19 +320,25 @@ async def violation_enter_amount(update, context):
 
     return FlowState.VIOLATION_CONFIRM
 
+
 async def violation_confirm(update, context):
 
     query = update.callback_query
     await query.answer()
 
-    # пока просто сохраняем в памяти / лог
-    context.user_data["last_violation"] = {
-        "contract_code": context.user_data["violation_contract"]["contract_code"],
-        "reason": context.user_data["violation_reason"],
+    c = context.user_data["violation_contract"]
+
+    payload = {
+        "contract_code": c["contract_code"],
+        "flat_number": c["flat_number"],
+        "violation_type": context.user_data["violation_reason"],
         "amount": context.user_data["violation_amount"],
+        "description": None,
     }
 
-    await query.edit_message_text("✅ Нарушение зафиксировано.")
+    insert_violation(payload)
+
+    await query.edit_message_text("✅ Нарушение сохранено.")
 
     await query.message.reply_text(
         "Главное меню:",
@@ -321,7 +346,6 @@ async def violation_confirm(update, context):
     )
 
     return FlowState.MENU
-
 
 async def import_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -871,17 +895,11 @@ async def close_early_no(update, context):
 
     contract = context.user_data["edit_contract"]
 
-    # берем плановую дату выезда из БД
     planned_end = datetime.fromisoformat(contract["end_date"]).date()
 
     context.user_data["actual_end_date"] = planned_end
 
-    await query.edit_message_text(
-        f"📅 Дата закрытия будет: {planned_end.strftime('%d.%m.%Y')}\n\n"
-        "Введите фактически возвращенный депозит:"
-    )
-
-    return FlowState.CLOSE_ENTER_DEPOSIT
+    return await finalize_close(update, context)
 
 async def close_today(update, context):
 
@@ -890,9 +908,7 @@ async def close_today(update, context):
 
     context.user_data["actual_end_date"] = datetime.today().date()
 
-    await query.edit_message_text("Введите фактически возвращенный депозит:")
-
-    return FlowState.CLOSE_ENTER_DEPOSIT
+    return await finalize_close(update, context)
 
 async def close_manual(update, context):
 
@@ -913,45 +929,15 @@ async def close_receive_date(update, context):
 
     context.user_data["actual_end_date"] = d
 
-    await update.message.reply_text("Введите фактически возвращенный депозит:")
-
-    return FlowState.CLOSE_ENTER_DEPOSIT
-
-async def close_enter_deposit(update, context):
-
-    val = update.message.text.strip()
-
-    if not val.isdigit():
-        await update.message.reply_text("Введите число")
-        return FlowState.CLOSE_ENTER_DEPOSIT
-
-    context.user_data["actual_returned_deposit"] = int(val)
-
-    orig = int(context.user_data["edit_contract"]["deposit"])
-
-    if int(val) < orig:
-        await update.message.reply_text("Почему депозит удержан?")
-        return FlowState.CLOSE_ENTER_REASON
-
-    context.user_data["close_reason"] = None
-
-    return await finalize_close(update, context)
-
-async def close_enter_reason(update, context):
-
-    context.user_data["close_reason"] = update.message.text.strip()
-
     return await finalize_close(update, context)
 
 async def finalize_close(update, context):
 
     c = context.user_data["edit_contract"]
 
-    close_contract(
-        contract_code=context.user_data["edit_contract"]["contract_code"],
+    close_contract_with_violations(
+        contract_code=c["contract_code"],
         actual_checkout_date=context.user_data["actual_end_date"],
-        returned_deposit=context.user_data["actual_returned_deposit"],
-        deposit_comment=context.user_data.get("close_reason"),
     )
 
     await update.message.reply_text(
@@ -1038,14 +1024,6 @@ def main():
                 CallbackQueryHandler(close_manual, pattern="^CLOSE_MANUAL$"),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, close_receive_date),
             ],
-        
-            FlowState.CLOSE_ENTER_DEPOSIT: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, close_enter_deposit),
-            ],
-        
-            FlowState.CLOSE_ENTER_REASON: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, close_enter_reason),
-            ],
             FlowState.VIOLATION_SELECT_FLAT: [
                 CallbackQueryHandler(violation_select_flat, pattern="^VIOL_FLAT:"),
             ],
@@ -1083,6 +1061,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
