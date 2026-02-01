@@ -14,6 +14,7 @@ def build_checkout_act(
     violations: list,
 ):
 
+    safe_code = contract["contract_code"].replace("/", "_")
     doc = Document(template_path)
 
     start = datetime.fromisoformat(contract["start_date"]).date()
