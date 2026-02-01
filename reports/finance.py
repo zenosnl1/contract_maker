@@ -7,20 +7,19 @@ from calendar import monthrange
 EXPENSE_PER_STAY = 10
 
 
-THIN_BORDER = Border(
-    left=Side(style="thin"),
-    right=Side(style="thin"),
-    top=Side(style="thin"),
-    bottom=Side(style="thin"),
+GRAY_BORDER = Border(
+    left=Side(style="thin", color="CCCCCC"),
+    right=Side(style="thin", color="CCCCCC"),
+    top=Side(style="thin", color="CCCCCC"),
+    bottom=Side(style="thin", color="CCCCCC"),
 )
-
 
 CENTER = Alignment(horizontal="center", vertical="center")
 
 
 def style_sheet(ws):
 
-    widths = [18, 14, 14, 14, 16, 14]
+    widths = [16, 12, 14, 14, 16, 20, 22, 14]
 
     for i, w in enumerate(widths, 1):
         ws.column_dimensions[chr(64 + i)].width = w
@@ -30,7 +29,7 @@ def style_sheet(ws):
 
         for cell in row:
             cell.alignment = CENTER
-            cell.border = THIN_BORDER
+            cell.border = GRAY_BORDER
 
 
 def build_finance_report(contracts):
@@ -41,14 +40,14 @@ def build_finance_report(contracts):
     by_month = defaultdict(list)
 
     # -----------------------------
-    # раскладываем по месяцам
+    # раскладываем ночи по месяцам
     # -----------------------------
 
     for c in contracts:
 
         start = date.fromisoformat(c["start_date"])
         end = date.fromisoformat(
-            c["actual_checkout_date"] or c["end_date"]
+            c.get("actual_checkout_date") or c["end_date"]
         )
 
         cur = start
@@ -57,6 +56,20 @@ def build_finance_report(contracts):
             key = f"{cur.year}-{cur.month:02d}"
             by_month[key].append(c)
             cur += timedelta(days=1)
+
+    # -----------------------------
+    # считаем ОБЩУЮ прибыль
+    # -----------------------------
+
+    all_profit = 0
+    all_nights = 0
+    all_days = defaultdict(int)
+
+    for c in contracts:
+        nights = int(c["nights"])
+        price = int(c["price_per_day"])
+        all_profit += nights * price - EXPENSE_PER_STAY
+        all_nights += nights
 
     # -----------------------------
     # строим листы
@@ -72,6 +85,8 @@ def build_finance_report(contracts):
             "Доход (€)",
             "Расходы (€)",
             "Чистый доход (€)",
+            "Потенциальная прибыль (€)",
+            "Реализованная прибыль (€)",
             "Загрузка (%)",
         ])
 
@@ -98,20 +113,20 @@ def build_finance_report(contracts):
             stats[flat]["income"] += price
             stats[flat]["stays"].add(c["contract_code"])
 
-        # -----------------------------
-        # сортировка по номеру квартиры
-        # -----------------------------
-
         sorted_flats = sorted(stats.items(), key=lambda x: int(x[0]))
 
         total_nights = 0
         total_income = 0
         total_expenses = 0
+        total_potential = 0
 
         for flat, d in sorted_flats:
 
             expenses = len(d["stays"]) * EXPENSE_PER_STAY
             net = d["income"] - expenses
+
+            potential = days_in_month * (d["income"] // max(d["nights"], 1))
+
             load = round(d["nights"] / days_in_month * 100, 1)
 
             ws.append([
@@ -120,18 +135,15 @@ def build_finance_report(contracts):
                 d["income"],
                 expenses,
                 net,
+                potential,
+                net,
                 load,
             ])
 
             total_nights += d["nights"]
             total_income += d["income"]
             total_expenses += expenses
-
-        # -----------------------------
-        # ИТОГО
-        # -----------------------------
-
-        avg_load = round(total_nights / (days_in_month * len(sorted_flats)) * 100, 1)
+            total_potential += potential
 
         ws.append([])
         ws.append([
@@ -140,13 +152,34 @@ def build_finance_report(contracts):
             total_income,
             total_expenses,
             total_income - total_expenses,
-            avg_load,
+            total_potential,
+            total_income - total_expenses,
+            round(total_nights / (days_in_month * len(sorted_flats)) * 100, 1),
         ])
 
-        last_row = ws.max_row
-
-        for cell in ws[last_row]:
+        for cell in ws[ws.max_row]:
             cell.font = Font(bold=True)
+
+        # -----------------------------
+        # Доля месяца от общего
+        # -----------------------------
+
+        ws.append([])
+        ws.append([
+            "Доля месяца от общей прибыли",
+            "",
+            "",
+            "",
+            f"{round((total_income - total_expenses) / max(all_profit,1) * 100, 1)} %",
+        ])
+
+        ws.append([
+            "Доля месяца от общей загрузки",
+            "",
+            "",
+            "",
+            f"{round(total_nights / max(all_nights,1) * 100, 1)} %",
+        ])
 
         style_sheet(ws)
 
