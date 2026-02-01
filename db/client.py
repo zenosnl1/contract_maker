@@ -13,16 +13,28 @@ HEADERS = {
 }
 
 def fetch_all_contracts():
-    r = requests.get(
+
+    url = (
         f"{SUPABASE_URL}/rest/v1/contracts"
         f"?select=*"
-        f"&order=start_date.desc",
+        f"&order=start_date.desc"
+    )
+
+    print("📡 FETCH ALL URL:", url)
+
+    r = requests.get(
+        url,
         headers=HEADERS,
         timeout=10,
     )
 
+    print("📡 STATUS:", r.status_code)
+    print("📡 BODY:", r.text)
+
     r.raise_for_status()
+
     return r.json()
+
 
 def fetch_active_contracts():
     today = date.today().isoformat()
