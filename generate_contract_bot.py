@@ -991,9 +991,61 @@ async def edit_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
     query = update.callback_query
     await query.answer()
 
+    rows = fetch_active_contracts()
+
+    buttons = []
+
+    for r in rows:
+        label = f"{r['flat_number']} — {r['client_name']}"
+        buttons.append([
+            InlineKeyboardButton(
+                label,
+                callback_data=f"EDIT_ACTIVE:{r['contract_code']}",
+            )
+        ])
+
+    buttons.append([
+        InlineKeyboardButton("✍️ Ввести номер вручную", callback_data="EDIT_MANUAL"),
+    ])
+
     await query.edit_message_text(
-        "Введите номер договора:"
+        "Выберите активный договор:",
+        reply_markup=InlineKeyboardMarkup(buttons),
     )
+
+    return FlowState.EDIT_SELECT_ACTIVE
+
+async def edit_select_active(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    code = query.data.split(":")[1]
+
+    contract = get_contract_by_code(code)
+
+    if not contract:
+        await query.edit_message_text("❌ Договор не найден.")
+        return FlowState.MENU
+
+    context.user_data["edit_contract"] = contract
+    context.user_data["close_contract_code"] = code
+
+    await query.edit_message_text(
+        "Что сделать с договором?",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🏁 Завершить договор", callback_data="CLOSE_CONTRACT")]
+        ])
+    )
+
+    return FlowState.EDIT_ACTION
+
+async def edit_manual_enter(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text("Введите номер договора:")
 
     return FlowState.EDIT_ENTER_CODE
 
@@ -1199,6 +1251,10 @@ def main():
                 CallbackQueryHandler(save_db_callback, pattern="^SAVE_DB$"),
                 CallbackQueryHandler(skip_db_callback, pattern="^SKIP_DB$"),
             ],
+            FlowState.EDIT_SELECT_ACTIVE: [
+                CallbackQueryHandler(edit_select_active, pattern="^EDIT_ACTIVE:"),
+                CallbackQueryHandler(edit_manual_enter, pattern="^EDIT_MANUAL$"),
+            ],
             FlowState.EDIT_ENTER_CODE: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, edit_enter_code_handler),
             ],
@@ -1266,6 +1322,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
