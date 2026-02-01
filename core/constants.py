@@ -1,7 +1,8 @@
 from enum import IntEnum
 
-CONTRACT_TEMPLATE = "template_contract.docx"
-ACT_TEMPLATE = "template_act.docx"
+CONTRACT_TEMPLATE = "templates/template_contract.docx"
+ACT_TEMPLATE = "templates/template_act.docx"
+CHECKOUT_ACT_TEMPLATE = "templates/template_checkout_act.docx"
 
 class FlowState(IntEnum):
     MENU = 0
