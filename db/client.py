@@ -127,6 +127,120 @@ def get_contract_by_code(contract_code: str):
 
     return rows[0]
 
+# ======================================================
+# Close contract full logic (with early checkout + act)
+# ======================================================
+
+def close_contract_full(
+    contract_code: str,
+    actual_checkout_date: date,
+    early_checkout: bool,
+    initiator: str | None,
+    early_reason: str | None,
+    manual_refund: int | None,
+    act_path: str,
+):
+
+    contract = get_contract_by_code(contract_code)
+
+    if not contract:
+        raise ValueError("Contract not found")
+
+    if contract["is_closed"]:
+        raise ValueError("Contract already closed")
+
+    # --- violations ---
+    violations = fetch_contract_violations(contract_code)
+    penalties = sum(int(v["amount"]) for v in violations)
+
+    # --- dates ---
+    start = datetime.fromisoformat(contract["start_date"]).date()
+    actual_end = actual_checkout_date
+
+    lived_nights = max(0, (actual_end - start).days)
+
+    price = int(contract["price_per_day"])
+    total_price = int(contract["total_price"])
+    deposit = int(contract["deposit"])
+
+    used_amount = lived_nights * price
+    unused_amount = max(0, total_price - used_amount)
+
+    # --- default calculations ---
+    refund = 0
+    extra_due = 0
+
+    # =============================
+    # NORMAL END
+    # =============================
+    if not early_checkout:
+
+        refund = max(0, deposit - penalties)
+        extra_due = max(0, penalties - deposit)
+
+    # =============================
+    # EARLY CHECKOUT
+    # =============================
+    else:
+
+        # ---- tenant initiated ----
+        if initiator == "tenant":
+
+            refund = unused_amount + max(0, deposit - penalties)
+            extra_due = max(0, penalties - deposit)
+
+        # ---- landlord initiated ----
+        elif initiator == "landlord":
+
+            if manual_refund is not None:
+                refund = manual_refund
+
+                total_available = deposit + unused_amount
+                extra_due = max(0, penalties - total_available + refund)
+
+            else:
+                refund = unused_amount + max(0, deposit - penalties)
+                extra_due = max(0, penalties - (deposit + unused_amount))
+
+    # --- save to contracts ---
+    url = (
+        SUPABASE_URL
+        + f"/rest/v1/contracts?contract_code=eq.{contract_code}"
+    )
+
+    payload = {
+        "actual_checkout_date": actual_checkout_date.isoformat(),
+        "early_checkout": early_checkout,
+        "early_initiator": initiator,
+        "early_reason": early_reason,
+
+        "refund_unused_amount": unused_amount,
+        "final_refund_amount": refund,
+        "extra_due_amount": extra_due,
+
+        "checkout_act_path": act_path,
+        "is_closed": True,
+    }
+
+    r = requests.patch(
+        url,
+        json=payload,
+        headers=HEADERS,
+        timeout=10,
+    )
+
+    print("🟡 CLOSE FULL:", r.status_code, r.text)
+
+    r.raise_for_status()
+
+    return {
+        "used": used_amount,
+        "unused": unused_amount,
+        "penalties": penalties,
+        "refund": refund,
+        "extra_due": extra_due,
+        "lived_nights": lived_nights,
+    }
 
 # ======================================================
 # Violations DB API
