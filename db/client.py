@@ -129,7 +129,7 @@ def get_contract_by_code(contract_code: str):
 
 
 # ======================================================
-# Violations
+# Violations DB API
 # ======================================================
 
 def insert_violation(payload: dict):
@@ -154,6 +154,7 @@ def fetch_contract_violations(contract_code: str):
         SUPABASE_URL
         + "/rest/v1/violations"
         + f"?contract_code=eq.{contract_code}"
+        + "&resolved=eq.false"
     )
 
     r = requests.get(url, headers=HEADERS, timeout=10)
@@ -162,9 +163,50 @@ def fetch_contract_violations(contract_code: str):
     return r.json()
 
 
-# ======================================================
-# Override close_contract logic
-# ======================================================
+def fetch_flat_violations(flat_number: str):
+
+    url = (
+        SUPABASE_URL
+        + "/rest/v1/violations"
+        + f"?flat_number=eq.{flat_number}"
+        + "&resolved=eq.false"
+    )
+
+    r = requests.get(url, headers=HEADERS, timeout=10)
+    r.raise_for_status()
+
+    return r.json()
+
+
+def delete_violation(violation_id: str):
+
+    url = (
+        SUPABASE_URL
+        + "/rest/v1/violations"
+        + f"?id=eq.{violation_id}"
+    )
+
+    r = requests.delete(url, headers=HEADERS, timeout=10)
+
+    print("🟡 VIOLATION DELETE:", r.status_code, r.text)
+
+    r.raise_for_status()
+
+
+def fetch_violations_between(start_date: str, end_date: str):
+
+    url = (
+        SUPABASE_URL
+        + "/rest/v1/violations"
+        + f"?created_at=gte.{start_date}"
+        + f"&created_at=lte.{end_date}"
+    )
+
+    r = requests.get(url, headers=HEADERS, timeout=10)
+    r.raise_for_status()
+
+    return r.json()
+
 
 def close_contract_with_violations(
     contract_code: str,
@@ -216,5 +258,4 @@ def close_contract_with_violations(
     print("🟡 CLOSE WITH VIOLATIONS:", r.status_code, r.text)
 
     r.raise_for_status()
-
 
