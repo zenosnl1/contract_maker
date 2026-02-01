@@ -333,14 +333,17 @@ def close_contract_with_violations(
     """
 
     payload = {
-        "actual_checkout_date": actual_checkout_date,
+        "actual_checkout_date": (
+            actual_checkout_date.isoformat()
+            if hasattr(actual_checkout_date, "isoformat")
+            else actual_checkout_date
+        ),
         "is_closed": True,
-
+    
         "early_checkout": early_checkout,
         "early_initiator": initiator,
         "early_reason": early_reason,
-
-        # если manual_refund None — оставляем как есть (или 0)
+    
         "final_refund_amount": manual_refund or 0,
     }
 
