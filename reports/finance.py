@@ -1,5 +1,6 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from collections import defaultdict
+
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Side, Font
 from openpyxl.utils import get_column_letter
@@ -16,6 +17,9 @@ GRAY_BORDER = Border(
 )
 
 CENTER = Alignment(horizontal="center", vertical="center")
+
+
+# -------------------------------------------------------
 
 
 def month_range(year: int, month: int):
@@ -114,10 +118,16 @@ def build_finance_report(rows):
 
                 bucket["potential"] += nights * price
 
-                lived = overlap_nights(start, min(today, end), m_start, m_end)
+                lived = overlap_nights(
+                    start,
+                    min(today, end),
+                    m_start,
+                    m_end,
+                )
 
                 bucket["realized"] += lived * price
 
+                # фикс-расход на заезд
                 bucket["expenses"] += EXPENSE_PER_BOOKING
 
             # следующий месяц
@@ -136,14 +146,22 @@ def build_finance_report(rows):
 
         ws.append([])
         ws.append([f"{month:02}.{year}"])
-        ws.merge_cells(start_row=ws.max_row, start_column=1,
-                       end_row=ws.max_row, end_column=len(headers))
+        ws.merge_cells(
+            start_row=ws.max_row,
+            start_column=1,
+            end_row=ws.max_row,
+            end_column=len(headers),
+        )
 
-        ws.cell(ws.max_row, 1).font = Font(bold=True)
+        title_cell = ws.cell(ws.max_row, 1)
+        title_cell.font = Font(bold=True)
+        title_cell.alignment = CENTER
+        title_cell.border = GRAY_BORDER
 
         month_total = 0
         month_potential = 0
         month_nights = 0
+        month_expenses = 0
 
         for flat in sorted(grouped[(year, month)]):
 
@@ -152,6 +170,7 @@ def build_finance_report(rows):
             month_total += b["realized"]
             month_potential += b["potential"]
             month_nights += b["nights"]
+            month_expenses += b["expenses"]
 
             ws.append([
                 f"{month:02}.{year}",
@@ -171,22 +190,51 @@ def build_finance_report(rows):
 
         ws.append([])
 
+        days_in_month = (
+            month_range(year, month)[1]
+            - month_range(year, month)[0]
+        ).days
+
+        flats_count = len(grouped[(year, month)])
+
+        total_possible_nights = days_in_month * flats_count
+
+        month_load = round(
+            month_nights / total_possible_nights * 100,
+            1,
+        ) if total_possible_nights else 0
+
+        month_profit = month_total - month_expenses
+
         ws.append([
             "ИТОГО",
-            "",
+            f"{flats_count} квартир",
 
             month_nights,
 
             f"{month_total} €",
             f"{month_potential} €",
 
-            "",
+            f"{month_expenses} €",
 
-            "",
+            f"{month_load} %",
         ])
 
-        grand_total += month_total
+        grand_total += month_profit
+
+    # --------------------------------------------------
+    # форматирование всех ячеек
+    # --------------------------------------------------
+
+    for row in ws.iter_rows():
+        ws.row_dimensions[row[0].row].height = 20
+
+        for cell in row:
+            if cell.value is not None:
+                cell.alignment = CENTER
+                cell.border = GRAY_BORDER
 
     path = "/tmp/financial_report.xlsx"
     wb.save(path)
+
     return path
