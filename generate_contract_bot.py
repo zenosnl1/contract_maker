@@ -85,6 +85,22 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return FlowState.FILLING
 
 
+def payment_method_keyboard():
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("💵 Наличные", callback_data="PAY_CASH"),
+            InlineKeyboardButton("🏦 Банковский перевод", callback_data="PAY_BANK"),
+        ]
+    ])
+
+
+def invoice_keyboard():
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("✅ Да", callback_data="INVOICE_YES"),
+            InlineKeyboardButton("❌ Нет", callback_data="INVOICE_NO"),
+        ]
+    ])
 
 def checkout_keyboard():
     buttons = [
@@ -963,6 +979,66 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"OK")
 
+async def payment_method_callback(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "PAY_CASH":
+
+        context.user_data["PAYMENT_METHOD"] = "cash"
+        context.user_data["INVOICE_ISSUED"] = False
+        context.user_data["INVOICE_NUMBER"] = None
+
+        return await continue_after_payment(update, context)
+
+    # bank
+    context.user_data["PAYMENT_METHOD"] = "bank_transfer"
+
+    await query.edit_message_text(
+        "Был ли выставлен счёт?",
+        reply_markup=invoice_keyboard(),
+    )
+
+    return FlowState.PAYMENT_INVOICE
+
+async def invoice_choice_callback(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "INVOICE_NO":
+
+        context.user_data["INVOICE_ISSUED"] = False
+        context.user_data["INVOICE_NUMBER"] = None
+
+        return await continue_after_payment(update, context)
+
+    context.user_data["INVOICE_ISSUED"] = True
+
+    await query.edit_message_text("Введите номер счёта:")
+
+    return FlowState.PAYMENT_INVOICE_NUMBER
+
+async def invoice_number_enter(update, context):
+
+    context.user_data["INVOICE_NUMBER"] = update.message.text.strip()
+
+    return await continue_after_payment(update, context)
+
+async def continue_after_payment(update, context):
+
+    step = context.user_data["step"]
+    step += 1
+    context.user_data["step"] = step
+
+    next_field = FIELDS[step]
+
+    await update.message.reply_text(QUESTIONS[next_field])
+
+    return FlowState.FILLING
+
+
 async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     query = update.callback_query
@@ -1420,7 +1496,17 @@ def main():
                 CommandHandler("status", status),
                 CommandHandler("stop", stop),
             ],
-    
+            FlowState.PAYMENT_METHOD: [
+                CallbackQueryHandler(payment_method_callback, pattern="^PAY_"),
+            ],
+            
+            FlowState.PAYMENT_INVOICE: [
+                CallbackQueryHandler(invoice_choice_callback, pattern="^INVOICE_"),
+            ],
+            
+            FlowState.PAYMENT_INVOICE_NUMBER: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, invoice_number_enter),
+            ],
             FlowState.CONFIRM_SAVE: [
                 CallbackQueryHandler(save_db_callback, pattern="^SAVE_DB$"),
                 CallbackQueryHandler(skip_db_callback, pattern="^SKIP_DB$"),
@@ -1516,6 +1602,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
