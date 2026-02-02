@@ -131,6 +131,70 @@ def get_contract_by_code(contract_code: str):
 # Close contract full logic (with early checkout + act)
 # ======================================================
 
+def calculate_close_preview(
+    contract_code: str,
+    actual_checkout_date: date,
+    early_checkout: bool,
+    initiator: str | None,
+    early_reason: str | None,
+    manual_refund: int | None,
+):
+
+    contract = get_contract_by_code(contract_code)
+
+    violations = fetch_contract_violations(contract_code)
+    penalties = sum(int(v["amount"]) for v in violations)
+
+    start = datetime.fromisoformat(contract["start_date"]).date()
+    actual_end = actual_checkout_date
+
+    lived_nights = max(0, (actual_end - start).days)
+
+    price = int(contract["price_per_day"])
+    total_price = int(contract["total_price"])
+    deposit = int(contract["deposit"])
+
+    used_amount = lived_nights * price
+    unused_amount = max(0, total_price - used_amount)
+
+    refund = 0
+    extra_due = 0
+
+    if not early_checkout:
+
+        refund = max(0, deposit - penalties)
+        extra_due = max(0, penalties - deposit)
+
+    else:
+
+        if initiator == "tenant":
+
+            refund = unused_amount + max(0, deposit - penalties)
+            extra_due = max(0, penalties - deposit)
+
+        elif initiator == "landlord":
+
+            if manual_refund is not None:
+                refund = manual_refund
+
+                total_available = deposit + unused_amount
+                extra_due = max(0, penalties - total_available + refund)
+
+            else:
+                refund = unused_amount + max(0, deposit - penalties)
+                extra_due = max(0, penalties - (deposit + unused_amount))
+
+    return {
+        "used": used_amount,
+        "unused": unused_amount,
+        "penalties": penalties,
+        "refund": refund,
+        "extra_due": extra_due,
+        "lived_nights": lived_nights,
+        "unused_nights": max(0, contract["nights"] - lived_nights),
+    }
+
+
 def close_contract_full(
     contract_code: str,
     actual_checkout_date: date,
@@ -319,49 +383,4 @@ def fetch_violations_between(start_date: str, end_date: str):
 
     return r.json()
 
-
-def close_contract_with_violations(
-    contract_code: str,
-    actual_checkout_date,
-    early_checkout: bool,
-    initiator: str | None,
-    early_reason: str | None,
-    manual_refund: int | None,
-):
-    """
-    Закрывает договор и сохраняет параметры досрочного выезда и финальные суммы.
-    """
-
-    payload = {
-        "actual_checkout_date": (
-            actual_checkout_date.isoformat()
-            if hasattr(actual_checkout_date, "isoformat")
-            else actual_checkout_date
-        ),
-        "is_closed": True,
-    
-        "early_checkout": early_checkout,
-        "early_initiator": initiator,
-        "early_reason": early_reason,
-    
-        "final_refund_amount": manual_refund or 0,
-    }
-
-    url = f"{SUPABASE_URL}/rest/v1/contracts?contract_code=eq.{contract_code}"
-
-    headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=representation",
-    }
-
-    resp = requests.patch(url, headers=headers, json=payload)
-
-    if not resp.ok:
-        raise RuntimeError(
-            f"close_contract_with_violations failed: {resp.status_code} {resp.text}"
-        )
-
-    return resp.json()
 
