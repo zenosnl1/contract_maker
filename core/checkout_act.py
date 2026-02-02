@@ -25,9 +25,12 @@ def build_checkout_act(
     unused_nights = max(0, total_nights - lived_nights)
 
     deposit = contract["deposit"] or 0
-    refund_unused = contract["refund_unused_amount"] or refund_unused
-    final_refund = contract["final_refund_amount"] or 0
-    extra_due = contract["extra_due_amount"] or 0
+
+    refund_unused_calc = unused_nights * (contract["price_per_day"] or 0)
+    refund_unused = contract.get("refund_unused_amount") or refund_unused_calc
+    
+    final_refund = contract.get("final_refund_amount") or 0
+    extra_due = contract.get("extra_due_amount") or 0
 
     penalties_total = sum(v["amount"] for v in violations)
 
@@ -45,7 +48,7 @@ def build_checkout_act(
         "CHECKOUT_TIME": contract.get("checkout_time") or "",
 
         "TOTAL_PRICE": str(contract["total_price"]),
-        "DEPOSIT": str(contract["deposit"]),
+        "DEPOSIT": str(deposit),
 
         "EARLY_CHECKOUT": "Да" if contract["early_checkout"] else "Нет",
         "EARLY_INITIATOR": contract.get("early_initiator") or "-",
