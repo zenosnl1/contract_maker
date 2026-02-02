@@ -1317,11 +1317,11 @@ async def close_receive_date(update, context):
 
 async def finalize_close(update, context):
 
+    c = context.user_data["edit_contract"]
+    
     if c.get("is_closed"):
         await update.message.reply_text("⚠️ Договор уже закрыт.")
         return FlowState.MENU
-
-    c = context.user_data["edit_contract"]
 
     result = close_contract_full(
         contract_code=c["contract_code"],
@@ -1346,7 +1346,8 @@ async def finalize_close(update, context):
 
     msg = update.message or update.callback_query.message
 
-    await msg.reply_document(open(path, "rb"))
+    with open(path, "rb") as f:
+        await msg.reply_document(f)
 
     await msg.reply_text(
         "✅ Договор закрыт и акт сформирован.",
@@ -1500,6 +1501,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
