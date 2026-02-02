@@ -1279,6 +1279,9 @@ async def close_early_no(update, context):
 
     context.user_data["actual_end_date"] = planned_end
     context.user_data["early_checkout"] = False
+    context.user_data.pop("early_initiator", None)
+    context.user_data.pop("early_reason", None)
+    context.user_data.pop("manual_refund", None)
 
     return await close_show_violations(update, context)
 
@@ -1313,6 +1316,10 @@ async def close_receive_date(update, context):
     return await close_show_preview(update, context)
 
 async def finalize_close(update, context):
+
+    if c.get("is_closed"):
+        await update.message.reply_text("⚠️ Договор уже закрыт.")
+        return FlowState.MENU
 
     c = context.user_data["edit_contract"]
 
@@ -1493,6 +1500,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
