@@ -2,7 +2,6 @@ import os
 from docx import Document
 import http.server
 import socketserver
-import os
 from core.constants import FIELDS, QUESTIONS, FlowState
 from core.constants import CONTRACT_TEMPLATE, ACT_TEMPLATE, CHECKOUT_ACT_TEMPLATE
 from core.checkout_act import build_checkout_act
@@ -1491,6 +1490,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
