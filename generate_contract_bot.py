@@ -236,7 +236,7 @@ async def close_show_violations(update, context):
 
     if not violations:
         context.user_data["close_total_penalty"] = 0
-        return await finalize_close(update, context)
+        return await close_show_preview(update, context)
 
     total = sum(int(v["amount"]) for v in violations)
 
@@ -1195,7 +1195,7 @@ async def close_show_preview(update, context):
     result = calculate_close_preview(
         contract_code=c["contract_code"],
         actual_checkout_date=context.user_data["actual_end_date"],
-        early_checkout=True,
+        early_checkout=context.user_data.get("early_checkout", False),
         initiator=context.user_data.get("early_initiator"),
         early_reason=context.user_data.get("early_reason"),
         manual_refund=context.user_data.get("manual_refund"),
@@ -1346,6 +1346,8 @@ async def finalize_close(update, context):
         reply_markup=start_keyboard(),
     )
 
+    context.user_data.clear()
+
     return FlowState.MENU
 
 # ===== main =====
@@ -1446,7 +1448,7 @@ def main():
                 CallbackQueryHandler(violation_delete_item, pattern="^VIOL_DEL_ITEM:"),
             ],
             FlowState.CLOSE_CONFIRM_VIOLATIONS: [
-                CallbackQueryHandler(finalize_close, pattern="^CLOSE_CONFIRM$"),
+                CallbackQueryHandler(close_show_preview, pattern="^CLOSE_CONFIRM$"),
                 CallbackQueryHandler(close_cancel, pattern="^CLOSE_CANCEL$"),
             ],
             FlowState.CLOSE_SELECT_INITIATOR: [
@@ -1491,6 +1493,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
