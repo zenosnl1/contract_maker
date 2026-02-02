@@ -14,7 +14,7 @@ from db.client import (
     get_contract_by_code,
     insert_violation,
     fetch_contract_violations,
-    close_contract_with_violations,
+    calculate_close_preview,
     delete_violation,
     close_contract_full,
 )
@@ -1192,7 +1192,7 @@ async def close_show_preview(update, context):
 
     c = context.user_data["edit_contract"]
 
-    result = close_contract_full(
+    result = calculate_close_preview(
         contract_code=c["contract_code"],
         actual_checkout_date=context.user_data["actual_end_date"],
         early_checkout=True,
@@ -1278,6 +1278,7 @@ async def close_early_no(update, context):
     planned_end = datetime.fromisoformat(contract["end_date"]).date()
 
     context.user_data["actual_end_date"] = planned_end
+    context.user_data["early_checkout"] = False
 
     return await close_show_violations(update, context)
 
@@ -1315,7 +1316,7 @@ async def finalize_close(update, context):
 
     c = context.user_data["edit_contract"]
 
-    close_contract_with_violations(
+    result = close_contract_full(
         contract_code=c["contract_code"],
         actual_checkout_date=context.user_data["actual_end_date"],
         early_checkout=context.user_data.get("early_checkout"),
@@ -1490,6 +1491,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
