@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import IntEnum, auto
 
 CONTRACT_TEMPLATE = "templates/template_contract.docx"
 ACT_TEMPLATE = "templates/template_act.docx"
