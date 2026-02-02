@@ -32,6 +32,10 @@ class FlowState(IntEnum):
     CLOSE_ENTER_MANUAL_REFUND = 83
     CLOSE_PREVIEW_ACT = 84
 
+    PAYMENT_METHOD = auto()
+    PAYMENT_INVOICE = auto()
+    PAYMENT_INVOICE_NUMBER = auto()
+
 FIELDS = [
     "FLAT_NUMBER",
     "CLIENT_NAME",
@@ -46,6 +50,9 @@ FIELDS = [
     "MAX_PEOPLE_NIGHT",
     "PRICE_PER_DAY",
     "DEPOSIT",
+    "PAYMENT_METHOD",
+    "INVOICE_ISSUED",
+    "INVOICE_NUMBER",
 ]
 
 QUESTIONS = {
@@ -62,4 +69,7 @@ QUESTIONS = {
     "MAX_PEOPLE_NIGHT": "Сколько человек может ночевать?",
     "PRICE_PER_DAY": "Цена за ночь:",
     "DEPOSIT": "Депозит:",
+    "PAYMENT_METHOD": "💳 Как производится оплата?",
+    "INVOICE_ISSUED": "Был ли выставлен счёт?",
+    "INVOICE_NUMBER": "Введите номер счёта:",
 }
