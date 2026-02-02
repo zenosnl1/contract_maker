@@ -899,6 +899,18 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"💶 {nights} ночей × {text} € = {total} €"
         )
 
+    # ====== PAYMENT FLOW ======
+
+    if field == "DEPOSIT":
+    
+        await update.message.reply_text(
+            "💳 Как производится оплата?",
+            reply_markup=payment_method_keyboard(),
+        )
+    
+        return FlowState.PAYMENT_METHOD
+
+
     # ---------- ДВИГАЕМСЯ ВПЕРЁД ----------
 
     step += 1
@@ -1602,6 +1614,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
