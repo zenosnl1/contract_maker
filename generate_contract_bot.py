@@ -635,7 +635,8 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text("📊 Формирую статистику…", reply_markup=None)
 
-    await query.message.reply_document(open(path, "rb"))
+    with open(path, "rb") as f:
+        await query.message.reply_document(f)
     
     await query.message.reply_text(
         "Главное меню:",
@@ -670,7 +671,8 @@ async def stats_finance_callback(update: Update, context: ContextTypes.DEFAULT_T
 
     path = build_finance_report(rows)
 
-    await query.message.reply_document(open(path, "rb"))
+    with open(path, "rb") as f:
+        await query.message.reply_document(f)
 
     await query.message.reply_text(
         "Главное меню:",
@@ -715,9 +717,19 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
             earned = lived_nights * price
         
-            refund_today = total - earned
-            if refund_today < 0:
-                refund_today = 0
+            preview = calculate_close_preview(
+                contract_code=r["contract_code"],
+                actual_checkout_date=today,
+                early_checkout=True,
+                initiator="tenant",
+                early_reason=None,
+                manual_refund=None,
+            )
+            
+            refund_today = preview["refund"]
+            extra_due = preview["extra_due"]
+            penalties = preview["penalties"]
+
         except Exception as e:
             print("🔥 ACTIVE ROW ERROR:", r)
             print(e)
@@ -731,7 +743,8 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
             f"✅ Прожито: {lived_nights} ночей / {earned} €\n"
             f"⏳ Осталось: {remaining_nights} ночей\n"
-            f"↩️ Возврат при выезде сегодня: {refund_today} €\n"
+            f"💸 Возврат при выезде сегодня: {refund_today} €\n"
+            f"⚠️ Удержания/долг: {extra_due + penalties} €\n"
     
             "—"
         )
@@ -960,8 +973,9 @@ async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["_generated_files"],
     )
 
-    for f in context.user_data["_generated_files"]:
-        await query.message.reply_document(open(f, "rb"))
+    for fpath in context.user_data["_generated_files"]:
+        with open(fpath, "rb") as f:
+            await query.message.reply_document(f)
 
     await query.edit_message_text("💾 Сохранено.", reply_markup=None)
     await query.message.reply_text(
@@ -976,8 +990,9 @@ async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    for f in context.user_data["_generated_files"]:
-        await query.message.reply_document(open(f, "rb"))
+    for fpath in context.user_data["_generated_files"]:
+        with open(fpath, "rb") as f:
+            await query.message.reply_document(f)
 
     await query.edit_message_text("Не Сохранено.", reply_markup=None)
     await query.message.reply_text(
@@ -1501,6 +1516,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
