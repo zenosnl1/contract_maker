@@ -24,8 +24,10 @@ def build_checkout_act(
     total_nights = contract["nights"] or 0
     unused_nights = max(0, total_nights - lived_nights)
 
-    price = contract["price_per_day"] or 0
-    refund_unused = unused_nights * price
+    deposit = contract["deposit"] or 0
+    refund_unused = contract["refund_unused_amount"] or refund_unused
+    final_refund = contract["final_refund_amount"] or 0
+    extra_due = contract["extra_due_amount"] or 0
 
     penalties_total = sum(v["amount"] for v in violations)
 
@@ -50,8 +52,8 @@ def build_checkout_act(
         "EARLY_REASON": contract.get("early_reason") or "-",
 
         "REFUND_UNUSED_AMOUNT": str(refund_unused),
-        "FINAL_REFUND_AMOUNT": str(contract["final_refund_amount"]),
-        "EXTRA_DUE_AMOUNT": str(contract["extra_due_amount"]),
+        "FINAL_REFUND_AMOUNT": str(final_refund),
+        "EXTRA_DUE_AMOUNT": str(extra_due),
 
         "LIVED_NIGHTS": str(lived_nights),
         "UNUSED_NIGHTS": str(unused_nights),
@@ -107,6 +109,7 @@ def _process_paragraph(p, data):
             if text.startswith(ph, i):
                 run = p.add_run(str(data[k]))
                 run.font.size = Pt(11)
+                run.bold = True
                 i += len(ph)
                 replaced = True
                 break
