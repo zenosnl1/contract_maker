@@ -2,6 +2,7 @@ import os
 from docx import Document
 import http.server
 import socketserver
+from core.security import access_guard, get_user_role
 from core.constants import FIELDS, QUESTIONS, FlowState
 from core.constants import CONTRACT_TEMPLATE, ACT_TEMPLATE, CHECKOUT_ACT_TEMPLATE
 from core.checkout_act import build_checkout_act
@@ -577,6 +578,9 @@ def generate_docs(data):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if await access_guard(update):
+        return ConversationHandler.END
+    
     context.user_data.clear()
 
     await update.message.reply_text(
@@ -632,6 +636,9 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if await access_guard(update):
+        return ConversationHandler.END
+    
     query = update.callback_query
     await query.answer()
 
@@ -663,6 +670,9 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def stats_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if await access_guard(update):
+        return ConversationHandler.END
+    
     query = update.callback_query
     await query.answer()
 
@@ -678,6 +688,9 @@ async def stats_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def stats_finance_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if await access_guard(update):
+        return ConversationHandler.END
+    
     query = update.callback_query
     await query.answer()
 
@@ -793,6 +806,9 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def start_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if await access_guard(update):
+        return ConversationHandler.END
+    
     query = update.callback_query
     await query.answer()
 
@@ -809,6 +825,9 @@ async def start_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if await access_guard(update):
+        return ConversationHandler.END
+    
     query = update.callback_query
     await query.answer()
 
@@ -829,6 +848,9 @@ async def checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def skip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if await access_guard(update):
+        return ConversationHandler.END
+    
     query = update.callback_query
     await query.answer()
 
@@ -1010,6 +1032,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 async def payment_method_callback(update, context):
 
+    if await access_guard(update):
+        return ConversationHandler.END
+    
     query = update.callback_query
     await query.answer()
 
@@ -1033,6 +1058,9 @@ async def payment_method_callback(update, context):
 
 async def invoice_choice_callback(update, context):
 
+    if await access_guard(update):
+        return ConversationHandler.END
+    
     query = update.callback_query
     await query.answer()
 
@@ -1091,6 +1119,9 @@ async def continue_after_payment(update, context):
 
 async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if await access_guard(update):
+        return ConversationHandler.END
+    
     query = update.callback_query
     await query.answer()
 
@@ -1113,6 +1144,9 @@ async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if await access_guard(update):
+        return ConversationHandler.END
+    
     query = update.callback_query
     await query.answer()
 
@@ -1130,6 +1164,9 @@ async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def edit_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if await access_guard(update):
+        return ConversationHandler.END
+    
     query = update.callback_query
     await query.answer()
 
@@ -1159,6 +1196,9 @@ async def edit_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def edit_select_active(update, context):
 
+    if await access_guard(update):
+        return ConversationHandler.END
+    
     query = update.callback_query
     await query.answer()
 
@@ -1735,6 +1775,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
