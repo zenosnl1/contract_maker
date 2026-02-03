@@ -120,7 +120,7 @@ def start_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("▶️ Начать оформление", callback_data="START_FLOW")],
         [InlineKeyboardButton("📥 Импорт договора", callback_data="MENU_IMPORT")],
-        [InlineKeyboardButton("✏️ Редактировать договор", callback_data="MENU_EDIT")],
+        [InlineKeyboardButton("✏️ Управление договором", callback_data="MENU_EDIT")],
         [InlineKeyboardButton("🚨 Нарушения", callback_data="MENU_VIOLATIONS_MENU")],
         [InlineKeyboardButton("📊 Статистика", callback_data="MENU_STATS_MENU")],
         [InlineKeyboardButton("👥 Текущие жильцы", callback_data="MENU_ACTIVE")],
@@ -1542,19 +1542,29 @@ def format_contract_view(c: dict) -> str:
         f"💳 Депозит: {v(c.get('deposit'))} €",
 
         "",
-
-        f"🚪 Закрыт: {'Да' if c.get('is_closed') else 'Нет'}",
     ]
 
-    if c.get("payment_method"):
-        pm = "Наличные" if c["payment_method"] == "cash" else "Банковский перевод"
-        lines += [
-            "",
-            f"💳 Оплата: {pm}",
-            f"📄 Счёт: {v(c.get('invoice_number'))}" if c.get("invoice_issued") else "",
-        ]
+    # ----- Статус договора -----
+    status = "Завершён" if c.get("is_closed") else "Активен"
+    lines.append(f"📦 Статус договора: {status}")
+
+    # ----- Payment -----
+    pm_raw = c.get("payment_method")
+
+    if pm_raw == "cash":
+        pm = "Наличные"
+    elif pm_raw == "bank_transfer":
+        pm = "Банковский перевод"
+    else:
+        pm = "—"
+
+    lines.append(f"💳 Способ оплаты: {pm}")
+
+    if c.get("invoice_issued"):
+        lines.append(f"📄 Счёт: {v(c.get('invoice_number'))}")
 
     return "\n".join(x for x in lines if x)
+
 
 # ===== main =====
 
@@ -1709,6 +1719,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
