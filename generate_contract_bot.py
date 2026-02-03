@@ -467,6 +467,9 @@ async def violation_confirm(update, context):
 
 async def import_flow_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if await require_admin(update):
+        return FlowState.MENU
+    
     query = update.callback_query
     await query.answer()
 
@@ -1175,6 +1178,9 @@ async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if await access_guard(update):
         return ConversationHandler.END
+
+    if await require_admin(update):
+        return FlowState.MENU
     
     query = update.callback_query
     await query.answer()
@@ -1575,6 +1581,18 @@ async def close_receive_date(update, context):
 
     return await close_show_preview(update, context)
 
+async def require_admin(update):
+
+    role = get_user_role(update.effective_user)
+
+    if role != "admin":
+        msg = update.message or update.callback_query.message
+        await msg.reply_text("⛔ У вас нет прав для этого действия.")
+        return True
+
+    return False
+
+
 async def finalize_close(update, context):
 
     c = context.user_data["edit_contract"]
@@ -1807,6 +1825,9 @@ def main():
                 CallbackQueryHandler(finalize_close, pattern="^CLOSE_FINAL_CONFIRM$"),
                 CallbackQueryHandler(close_cancel, pattern="^CLOSE_CANCEL$"),
             ],
+            FlowState.WAIT_PHONE: [
+                MessageHandler(filters.CONTACT, phone_received),
+            ],
         },
         fallbacks=[CommandHandler("stop", stop)],
         allow_reentry=True,
@@ -1829,6 +1850,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
