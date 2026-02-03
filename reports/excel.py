@@ -2,7 +2,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from datetime import datetime
-from core.constants import STAT_COLUMNS, STATS_HEADERS
+from core.constants import STAT_COLUMNS, STAT_HEADERS
 
 
 def build_stats_excel(rows):
