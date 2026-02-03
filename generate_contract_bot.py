@@ -21,6 +21,7 @@ from db.client import (
 )
 from telegram.ext import ApplicationBuilder
 from telegram import Update
+from telegram import ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -118,14 +119,27 @@ def checkout_keyboard():
     return InlineKeyboardMarkup(buttons)
 
 def start_keyboard():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("▶️ Начать оформление", callback_data="START_FLOW")],
-        [InlineKeyboardButton("📥 Импорт договора", callback_data="MENU_IMPORT")],
-        [InlineKeyboardButton("✏️ Управление договором", callback_data="MENU_EDIT")],
-        [InlineKeyboardButton("🚨 Нарушения", callback_data="MENU_VIOLATIONS_MENU")],
-        [InlineKeyboardButton("📊 Статистика", callback_data="MENU_STATS_MENU")],
-        [InlineKeyboardButton("👥 Текущие жильцы", callback_data="MENU_ACTIVE")],
-    ])
+    role = get_user_role(user)
+
+    buttons = []
+
+    # --- admin only ---
+    if role == "admin":
+        buttons += [
+            [InlineKeyboardButton("▶️ Начать оформление", callback_data="START_FLOW")],
+            [InlineKeyboardButton("📥 Импорт договора", callback_data="MENU_IMPORT")],
+            [InlineKeyboardButton("✏️ Управление договором", callback_data="MENU_EDIT")],
+            [InlineKeyboardButton("🚨 Нарушения", callback_data="MENU_VIOLATIONS_MENU")],
+        ]
+
+    # --- admin + viewer ---
+    if role in ("admin", "viewer"):
+        buttons += [
+            [InlineKeyboardButton("📊 Статистика", callback_data="MENU_STATS_MENU")],
+            [InlineKeyboardButton("👥 Текущие жильцы", callback_data="MENU_ACTIVE")],
+        ]
+
+    return InlineKeyboardMarkup(buttons)
 
 def date_keyboard(days=30, start_from=None):
 
@@ -576,20 +590,60 @@ def generate_docs(data):
 
 # ===== Telegram flow =====
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update, context):
 
-    if await access_guard(update):
-        return ConversationHandler.END
-    
+    user = update.effective_user
+
+    role = get_user_role(user)
+
+    # неизвестен → просим телефон
+    if not role:
+
+        kb = ReplyKeyboardMarkup(
+            [[KeyboardButton("📱 Поделиться номером", request_contact=True)]],
+            resize_keyboard=True,
+            one_time_keyboard=True,
+        )
+
+        await update.message.reply_text(
+            "🔐 Для доступа к боту необходимо подтвердить номер телефона.",
+            reply_markup=kb,
+        )
+
+        return FlowState.WAIT_PHONE
+
     context.user_data.clear()
 
     await update.message.reply_text(
         "👋 Главное меню:",
-        reply_markup=start_keyboard(),
+        reply_markup=start_keyboard(user),
     )
 
     return FlowState.MENU
 
+async def phone_received(update, context):
+
+    contact = update.message.contact
+
+    phone = normalize_phone(contact.phone_number)
+
+    user = update.effective_user
+
+    # подставляем временно
+    user.phone_number = phone
+
+    role = get_user_role(user)
+
+    if not role:
+        await update.message.reply_text("⛔ Доступ запрещён.")
+        return ConversationHandler.END
+
+    await update.message.reply_text(
+        "✅ Доступ подтверждён.",
+        reply_markup=start_keyboard(user),
+    )
+
+    return FlowState.MENU
 
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1775,6 +1829,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
