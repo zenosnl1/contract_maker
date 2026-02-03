@@ -1046,7 +1046,8 @@ async def continue_after_payment(update, context):
 
     next_field = FIELDS[step]
 
-    await update.message.reply_text(QUESTIONS[next_field])
+    msg = update.message or update.callback_query.message
+    await msg.reply_text(QUESTIONS[next_field])
 
     return FlowState.FILLING
 
@@ -1614,6 +1615,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
