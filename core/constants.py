@@ -50,9 +50,6 @@ FIELDS = [
     "MAX_PEOPLE_NIGHT",
     "PRICE_PER_DAY",
     "DEPOSIT",
-    "PAYMENT_METHOD",
-    "INVOICE_ISSUED",
-    "INVOICE_NUMBER",
 ]
 
 QUESTIONS = {
@@ -69,7 +66,4 @@ QUESTIONS = {
     "MAX_PEOPLE_NIGHT": "Сколько человек может ночевать?",
     "PRICE_PER_DAY": "Цена за ночь:",
     "DEPOSIT": "Депозит:",
-    "PAYMENT_METHOD": "💳 Как производится оплата?",
-    "INVOICE_ISSUED": "Был ли выставлен счёт?",
-    "INVOICE_NUMBER": "Введите номер счёта:",
 }
