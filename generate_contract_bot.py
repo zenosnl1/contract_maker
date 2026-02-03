@@ -168,6 +168,133 @@ def skip_keyboard():
         [[InlineKeyboardButton("⏭ Пропустить", callback_data="SKIP")]]
     )
 
+async def bookings_menu_callback(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text(
+        "📌 Брони\n\nВыберите действие:",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("➕ Создать бронь", callback_data="BOOKING_CREATE")],
+            [InlineKeyboardButton("📋 Текущие брони", callback_data="BOOKING_LIST")],
+            [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_MENU")],
+        ])
+    )
+
+    return FlowState.BOOKING_MENU
+
+async def booking_create_start(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data["booking"] = {}
+
+    await query.edit_message_text("Введите номер помещения:")
+
+    return FlowState.BOOKING_CREATE_FLAT
+
+async def booking_flat_enter(update, context):
+
+    context.user_data["booking"]["flat_number"] = update.message.text.strip()
+    await update.message.reply_text("Введите имя клиента:")
+
+    return FlowState.BOOKING_CREATE_NAME
+
+
+async def booking_name_enter(update, context):
+
+    context.user_data["booking"]["client_name"] = update.message.text.strip()
+    await update.message.reply_text("Введите телефон:")
+
+    return FlowState.BOOKING_CREATE_PHONE
+
+
+async def booking_phone_enter(update, context):
+
+    context.user_data["booking"]["client_number"] = update.message.text.strip()
+
+    await update.message.reply_text(
+        "📅 Выберите дату заезда:",
+        reply_markup=date_keyboard(),
+    )
+
+    return FlowState.BOOKING_CREATE_START
+
+mode = context.user_data.get("mode")
+
+if mode == "booking":
+    return await booking_date_callback(update, context)
+
+async def booking_date_callback(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    iso = query.data.split(":")[1]
+    d = datetime.fromisoformat(iso)
+
+    booking = context.user_data["booking"]
+
+    if "start_date" not in booking:
+
+        booking["start_date"] = d.isoformat()
+
+        await query.edit_message_text(
+            "📅 Выберите дату выезда:",
+            reply_markup=booking_end_keyboard(d + timedelta(days=1)),
+        )
+
+        return FlowState.BOOKING_CREATE_END
+
+    booking["end_date"] = d.isoformat()
+
+    return await booking_finish(update, context)
+
+def booking_end_keyboard(start_from):
+
+    kb = date_keyboard(start_from=start_from)
+
+    kb.inline_keyboard.append([
+        InlineKeyboardButton("❓ Пока неизвестно", callback_data="BOOKING_END_UNKNOWN"),
+    ])
+
+    return kb
+
+async def booking_end_unknown(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data["booking"]["end_date"] = None
+
+    return await booking_finish(update, context)
+
+async def booking_finish(update, context):
+
+    b = context.user_data["booking"]
+
+    text = (
+        "📌 Бронь создана:\n\n"
+        f"🏠 Помещение: {b['flat_number']}\n"
+        f"👤 Клиент: {b['client_name']}\n"
+        f"📞 Телефон: {b['client_number']}\n"
+        f"📅 Заезд: {b['start_date']}\n"
+        f"📅 Выезд: {b['end_date'] or 'пока неизвестно'}"
+    )
+
+    msg = update.message or update.callback_query.message
+
+    await msg.reply_text(text)
+
+    await msg.reply_text(
+        "Главное меню:",
+        reply_markup=start_keyboard(update.effective_user),
+    )
+
+    return FlowState.MENU
+
 
 def replace_everywhere(doc, data):
     for p in doc.paragraphs:
@@ -1721,6 +1848,7 @@ def main():
             FlowState.MENU: [
                 CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"),
                 CallbackQueryHandler(import_flow_callback, pattern="^MENU_IMPORT$"),
+                CallbackQueryHandler(bookings_menu_callback, pattern="^MENU_BOOKINGS$"),
                 CallbackQueryHandler(violations_menu_callback, pattern="^MENU_VIOLATIONS_MENU$"),
                 CallbackQueryHandler(violation_start_callback, pattern="^VIOL_ADD$"),
                 CallbackQueryHandler(violation_delete_start, pattern="^VIOL_DELETE$"),
@@ -1830,6 +1958,31 @@ def main():
             FlowState.WAIT_PHONE: [
                 MessageHandler(filters.CONTACT, phone_received),
             ],
+            FlowState.BOOKING_MENU: [
+                CallbackQueryHandler(booking_create_start, pattern="^BOOKING_CREATE$"),
+                CallbackQueryHandler(back_to_menu_callback, pattern="^BACK_TO_MENU$"),
+            ],
+            
+            FlowState.BOOKING_CREATE_FLAT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, booking_flat_enter),
+            ],
+            
+            FlowState.BOOKING_CREATE_NAME: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, booking_name_enter),
+            ],
+            
+            FlowState.BOOKING_CREATE_PHONE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, booking_phone_enter),
+            ],
+            
+            FlowState.BOOKING_CREATE_START: [
+                CallbackQueryHandler(date_callback, pattern="^DATE:"),
+            ],
+            
+            FlowState.BOOKING_CREATE_END: [
+                CallbackQueryHandler(date_callback, pattern="^DATE:"),
+                CallbackQueryHandler(booking_end_unknown, pattern="^BOOKING_END_UNKNOWN$"),
+            ],
         },
         fallbacks=[CommandHandler("stop", stop)],
         allow_reentry=True,
@@ -1852,6 +2005,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
