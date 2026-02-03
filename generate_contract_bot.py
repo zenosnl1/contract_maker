@@ -1160,6 +1160,7 @@ async def edit_select_active(update, context):
     await query.edit_message_text(
         "Что сделать с договором?",
         reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("📄 Информация", callback_data="SHOW_CONTRACT_INFO")],
             [InlineKeyboardButton("🏁 Завершить договор", callback_data="CLOSE_CONTRACT")]
         ])
     )
@@ -1199,11 +1200,35 @@ async def edit_enter_code_handler(update: Update, context: ContextTypes.DEFAULT_
     await update.message.reply_text(
         "Что сделать с договором?",
         reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("📄 Информация", callback_data="SHOW_CONTRACT_INFO")],
             [InlineKeyboardButton("🏁 Завершить договор", callback_data="CLOSE_CONTRACT")]
         ])
     )
 
     return FlowState.EDIT_ACTION
+
+async def show_contract_info_callback(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    contract = context.user_data.get("edit_contract")
+
+    if not contract:
+        await query.edit_message_text("❌ Нет данных договора.")
+        return FlowState.MENU
+
+    text = format_contract_view(contract)
+
+    await query.edit_message_text(text)
+
+    await query.message.reply_text(
+        "Главное меню:",
+        reply_markup=start_keyboard(),
+    )
+
+    return FlowState.MENU
+
 
 # ======================================================
 # Extended close flow with act generation
@@ -1483,6 +1508,54 @@ async def finalize_close(update, context):
 
     return FlowState.MENU
 
+def format_contract_view(c: dict) -> str:
+
+    def v(x):
+        return x if x not in [None, "", "-----"] else "-"
+
+    lines = [
+        "📄 Договор\n",
+
+        f"🆔 Код: {v(c.get('contract_code'))}",
+        f"🏠 Помещение: {v(c.get('flat_number'))}",
+
+        "",
+
+        f"👤 Клиент: {v(c.get('client_name'))}",
+        f"📄 Документ: {v(c.get('client_id'))}",
+        f"📞 Телефон: {v(c.get('client_number'))}",
+        f"📧 Email: {v(c.get('client_mail'))}",
+        f"🏠 Адрес: {v(c.get('client_address'))}",
+
+        "",
+
+        f"📅 Заезд: {v(c.get('start_date'))}",
+        f"📅 Плановый выезд: {v(c.get('end_date'))}",
+        f"📅 Фактический выезд: {v(c.get('actual_checkout_date'))}",
+        f"⏰ Время выезда: {v(c.get('checkout_time'))}",
+
+        "",
+
+        f"🌙 Ночей: {v(c.get('nights'))}",
+        f"💶 Цена/ночь: {v(c.get('price_per_day'))} €",
+        f"💰 Общая сумма: {v(c.get('total_price'))} €",
+        f"💳 Депозит: {v(c.get('deposit'))} €",
+
+        "",
+
+        f"🚪 Закрыт: {'Да' if c.get('is_closed') else 'Нет'}",
+    ]
+
+    if c.get("payment_method"):
+        pm = "Наличные" if c["payment_method"] == "cash" else "Банковский перевод"
+        lines += [
+            "",
+            f"💳 Оплата: {pm}",
+            f"📄 Счёт: {v(c.get('invoice_number'))}" if c.get("invoice_issued") else "",
+        ]
+
+    return "\n".join(x for x in lines if x)
+
 # ===== main =====
 
 WEBHOOK_PATH = "/webhook"
@@ -1555,8 +1628,8 @@ def main():
         
             FlowState.EDIT_ACTION: [
                 CallbackQueryHandler(close_contract_start, pattern="^CLOSE_CONTRACT$"),
+                CallbackQueryHandler(show_contract_info_callback, pattern="^SHOW_CONTRACT_INFO$"),
             ],
-        
             FlowState.CLOSE_IS_EARLY: [
                 CallbackQueryHandler(close_early_yes, pattern="^CLOSE_EARLY_YES$"),
                 CallbackQueryHandler(close_early_no, pattern="^CLOSE_EARLY_NO$"),
@@ -1636,6 +1709,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
