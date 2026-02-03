@@ -231,13 +231,14 @@ async def booking_date_callback(update, context):
     await query.answer()
 
     iso = query.data.split(":")[1]
-    d = datetime.fromisoformat(iso)
+    d = datetime.fromisoformat(iso).date()
 
-    booking = context.user_data["booking"]
+    booking = context.user_data.setdefault("booking", {})
 
+    # ---------- заезд ----------
     if "start_date" not in booking:
 
-        booking["start_date"] = d.isoformat()
+        booking["start_date"] = d.strftime("%d.%m.%Y")
 
         await query.edit_message_text(
             "📅 Выберите дату выезда:",
@@ -246,7 +247,8 @@ async def booking_date_callback(update, context):
 
         return FlowState.BOOKING_CREATE_END
 
-    booking["end_date"] = d.isoformat()
+    # ---------- выезд ----------
+    booking["end_date"] = d.strftime("%d.%m.%Y")
 
     return await booking_finish(update, context)
 
@@ -2003,6 +2005,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
