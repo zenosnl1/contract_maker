@@ -44,6 +44,11 @@ TOKEN = os.environ["BOT_TOKEN"]
 
 async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    # --- booking mode ---
+    if context.user_data.get("mode") == "booking":
+        return await booking_date_callback(update, context)
+
+    # --- contract/import mode ---
     query = update.callback_query
     await query.answer()
 
@@ -53,27 +58,23 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data["step"]
     if step >= len(FIELDS):
         return FlowState.FILLING
-    
+
     field = FIELDS[step]
 
-    # сохраняем дату
     context.user_data[field] = d.strftime("%d.%m.%Y")
 
     step += 1
     context.user_data["step"] = step
 
-    # после START_DATE — показываем END_DATE
     if field == "START_DATE":
         next_day = d + timedelta(days=1)
-    
+
         await query.edit_message_text(
             "📅 Выберите дату выезда:",
             reply_markup=date_keyboard(start_from=next_day),
         )
         return FlowState.FILLING
 
-
-    # после END_DATE — просто спрашиваем следующий шаг (CHECKOUT_TIME)
     next_field = FIELDS[step]
 
     if next_field == "CHECKOUT_TIME":
@@ -82,9 +83,10 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=checkout_keyboard(),
         )
         return FlowState.FILLING
-    
+
     await query.edit_message_text(QUESTIONS[next_field])
     return FlowState.FILLING
+
 
 
 def payment_method_keyboard():
@@ -189,6 +191,7 @@ async def booking_create_start(update, context):
     query = update.callback_query
     await query.answer()
 
+    context.user_data["mode"] = "booking"
     context.user_data["booking"] = {}
 
     await query.edit_message_text("Введите номер помещения:")
@@ -221,11 +224,6 @@ async def booking_phone_enter(update, context):
     )
 
     return FlowState.BOOKING_CREATE_START
-
-mode = context.user_data.get("mode")
-
-if mode == "booking":
-    return await booking_date_callback(update, context)
 
 async def booking_date_callback(update, context):
 
@@ -2005,6 +2003,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
