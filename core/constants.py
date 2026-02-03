@@ -36,8 +36,6 @@ class FlowState(IntEnum):
     PAYMENT_INVOICE = auto()
     PAYMENT_INVOICE_NUMBER = auto()
 
-    FIND_CONTRACT_ENTER_CODE = auto()
-
 FIELDS = [
     "FLAT_NUMBER",
     "CLIENT_NAME",
