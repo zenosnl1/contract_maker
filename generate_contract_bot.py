@@ -254,13 +254,15 @@ async def booking_date_callback(update, context):
 
 def booking_end_keyboard(start_from):
 
-    kb = date_keyboard(start_from=start_from)
+    base_kb = date_keyboard(start_from=start_from)
 
-    kb.inline_keyboard.append([
+    buttons = list(base_kb.inline_keyboard)
+
+    buttons.append([
         InlineKeyboardButton("❓ Пока неизвестно", callback_data="BOOKING_END_UNKNOWN"),
     ])
 
-    return kb
+    return InlineKeyboardMarkup(buttons)
 
 async def booking_end_unknown(update, context):
 
@@ -2005,6 +2007,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
