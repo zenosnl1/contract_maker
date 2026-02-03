@@ -4,6 +4,14 @@ CONTRACT_TEMPLATE = "templates/template_contract.docx"
 ACT_TEMPLATE = "templates/template_act.docx"
 CHECKOUT_ACT_TEMPLATE = "templates/template_checkout_act.docx"
 
+ADMIN_USERS = {
+    "@zenosnl",
+}
+
+VIEW_USERS = {
+    "+37129207175",
+}
+
 class FlowState(IntEnum):
     MENU = 0
     FILLING = 1
