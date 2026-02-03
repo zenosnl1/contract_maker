@@ -5,7 +5,7 @@ ACT_TEMPLATE = "templates/template_act.docx"
 CHECKOUT_ACT_TEMPLATE = "templates/template_checkout_act.docx"
 
 ADMIN_USERNAMES = {
-    "zenosnl",
+    "",
 }
 
 ADMIN_PHONES = {
