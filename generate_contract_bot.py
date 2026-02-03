@@ -19,6 +19,7 @@ from db.client import (
     delete_violation,
     close_contract_full,
     insert_booking,
+    fetch_active_bookings,
 )
 from telegram.ext import ApplicationBuilder
 from telegram import Update
@@ -219,12 +220,27 @@ async def booking_phone_enter(update, context):
 
     context.user_data["booking"]["client_number"] = update.message.text.strip()
 
+    await update.message.reply_text("Введите цену за ночь (€):")
+
+    return FlowState.BOOKING_CREATE_PRICE
+
+async def booking_price_enter(update, context):
+
+    txt = update.message.text.strip()
+
+    if not txt.isdigit():
+        await update.message.reply_text("Введите сумму цифрами.")
+        return FlowState.BOOKING_CREATE_PRICE
+
+    context.user_data["booking"]["price_per_day"] = int(txt)
+
     await update.message.reply_text(
         "📅 Выберите дату заезда:",
         reply_markup=date_keyboard(),
     )
 
     return FlowState.BOOKING_CREATE_START
+
 
 async def booking_date_callback(update, context):
 
@@ -278,29 +294,47 @@ async def booking_finish(update, context):
 
     b = context.user_data["booking"]
 
+    start = datetime.fromisoformat(b["start_date"]).date()
+
+    if b["end_date"]:
+        end = datetime.fromisoformat(b["end_date"]).date()
+        nights = (end - start).days
+    else:
+        end = None
+        nights = None
+
+    price = b["price_per_day"]
+
+    total = nights * price if nights is not None else None
+
+    payload = {
+        "flat_number": b["flat_number"],
+        "client_name": b["client_name"],
+        "client_number": b["client_number"],
+        "start_date": start.isoformat(),
+        "end_date": end.isoformat() if end else None,
+        "nights": nights,
+        "price_per_day": price,
+        "total_price": total,
+        "status": "active",
+    }
+
+    insert_booking(payload)
+
     text = (
         "📌 Бронь создана:\n\n"
         f"🏠 Помещение: {b['flat_number']}\n"
         f"👤 Клиент: {b['client_name']}\n"
         f"📞 Телефон: {b['client_number']}\n"
-        f"📅 Заезд: {b['start_date']}\n"
-        f"📅 Выезд: {b['end_date'] or 'пока неизвестно'}"
+        f"📅 Заезд: {start.isoformat()}\n"
+        f"📅 Выезд: {end.isoformat() if end else 'пока неизвестно'}\n"
+        f"🌙 Ночей: {nights if nights is not None else '—'}\n"
+        f"💶 Цена/ночь: {price} €\n"
+        f"💰 Сумма: {total if total is not None else '—'} €"
     )
 
     msg = update.message or update.callback_query.message
 
-    insert_booking({
-        "flat_number": b["flat_number"],
-        "client_name": b["client_name"],
-        "client_number": b["client_number"],
-        "start_date": datetime.strptime(b["start_date"], "%d.%m.%Y").date().isoformat(),
-        "end_date": (
-            datetime.strptime(b["end_date"], "%d.%m.%Y").date().isoformat()
-            if b["end_date"]
-            else None
-        ),
-    })
-    
     await msg.reply_text(text)
 
     await msg.reply_text(
@@ -309,6 +343,7 @@ async def booking_finish(update, context):
     )
 
     return FlowState.MENU
+
 
 async def booking_list_callback(update, context):
 
@@ -319,31 +354,38 @@ async def booking_list_callback(update, context):
 
     if not rows:
         await query.edit_message_text("📭 Активных броней нет.")
+        await query.message.reply_text(
+            "Главное меню:",
+            reply_markup=start_keyboard(update.effective_user),
+        )
         return FlowState.MENU
-
-    def flat_key(r):
-        try:
-            return int(r["flat_number"])
-        except Exception:
-            return r["flat_number"]
-
-    rows = sorted(rows, key=flat_key)
 
     lines = ["📌 Текущие брони:\n"]
 
-    sep = "━━━━━━━━━━━━━━━━━━━━"
+    today = date.today()
 
     for r in rows:
 
-        start = r["start_date"]
-        end = r["end_date"] or "—"
+        start = datetime.fromisoformat(r["start_date"]).date()
+
+        if r["end_date"]:
+            end = datetime.fromisoformat(r["end_date"]).date()
+            nights = r["nights"]
+        else:
+            end = None
+            nights = "?"
+
+        sep = "━━━━━━━━━━━━━━━━━━━━"
 
         lines.append(
             f"\n{sep}\n\n"
             f"🏠 {r['flat_number']}\n"
             f"👤 {r['client_name']}\n"
             f"📞 {r['client_number']}\n"
-            f"📅 {start} → {end}\n"
+            f"📅 {r['start_date']} → {r['end_date'] or '❓'}\n\n"
+            f"🌙 Ночей: {nights}\n"
+            f"💶 Цена/ночь: {r['price_per_day']} €\n"
+            f"💰 Сумма: {r['total_price'] or '—'} €\n"
             f"\n{sep}\n"
         )
 
@@ -355,6 +397,7 @@ async def booking_list_callback(update, context):
     )
 
     return FlowState.MENU
+
 
 
 
@@ -2023,6 +2066,7 @@ def main():
             ],
             FlowState.BOOKING_MENU: [
                 CallbackQueryHandler(booking_create_start, pattern="^BOOKING_CREATE$"),
+                CallbackQueryHandler(booking_list_callback, pattern="^BOOKING_LIST$"),
                 CallbackQueryHandler(back_to_menu_callback, pattern="^BACK_TO_MENU$"),
             ],
             
@@ -2036,6 +2080,9 @@ def main():
             
             FlowState.BOOKING_CREATE_PHONE: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, booking_phone_enter),
+            ],
+            FlowState.BOOKING_CREATE_PRICE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, booking_price_enter),
             ],
             
             FlowState.BOOKING_CREATE_START: [
@@ -2068,6 +2115,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
