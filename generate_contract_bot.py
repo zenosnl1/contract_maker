@@ -18,6 +18,7 @@ from db.client import (
     calculate_close_preview,
     delete_violation,
     close_contract_full,
+    insert_booking,
 )
 from telegram.ext import ApplicationBuilder
 from telegram import Update
@@ -288,6 +289,18 @@ async def booking_finish(update, context):
 
     msg = update.message or update.callback_query.message
 
+    insert_booking({
+        "flat_number": b["flat_number"],
+        "client_name": b["client_name"],
+        "client_number": b["client_number"],
+        "start_date": datetime.strptime(b["start_date"], "%d.%m.%Y").date().isoformat(),
+        "end_date": (
+            datetime.strptime(b["end_date"], "%d.%m.%Y").date().isoformat()
+            if b["end_date"]
+            else None
+        ),
+    })
+    
     await msg.reply_text(text)
 
     await msg.reply_text(
@@ -296,6 +309,53 @@ async def booking_finish(update, context):
     )
 
     return FlowState.MENU
+
+async def booking_list_callback(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    rows = fetch_active_bookings()
+
+    if not rows:
+        await query.edit_message_text("📭 Активных броней нет.")
+        return FlowState.MENU
+
+    def flat_key(r):
+        try:
+            return int(r["flat_number"])
+        except Exception:
+            return r["flat_number"]
+
+    rows = sorted(rows, key=flat_key)
+
+    lines = ["📌 Текущие брони:\n"]
+
+    sep = "━━━━━━━━━━━━━━━━━━━━"
+
+    for r in rows:
+
+        start = r["start_date"]
+        end = r["end_date"] or "—"
+
+        lines.append(
+            f"\n{sep}\n\n"
+            f"🏠 {r['flat_number']}\n"
+            f"👤 {r['client_name']}\n"
+            f"📞 {r['client_number']}\n"
+            f"📅 {start} → {end}\n"
+            f"\n{sep}\n"
+        )
+
+    await query.edit_message_text("\n".join(lines))
+
+    await query.message.reply_text(
+        "Главное меню:",
+        reply_markup=start_keyboard(update.effective_user),
+    )
+
+    return FlowState.MENU
+
 
 
 def replace_everywhere(doc, data):
@@ -1851,6 +1911,7 @@ def main():
                 CallbackQueryHandler(start_flow_callback, pattern="^START_FLOW$"),
                 CallbackQueryHandler(import_flow_callback, pattern="^MENU_IMPORT$"),
                 CallbackQueryHandler(bookings_menu_callback, pattern="^MENU_BOOKINGS$"),
+                CallbackQueryHandler(booking_list_callback, pattern="^BOOKING_LIST$"),
                 CallbackQueryHandler(violations_menu_callback, pattern="^MENU_VIOLATIONS_MENU$"),
                 CallbackQueryHandler(violation_start_callback, pattern="^VIOL_ADD$"),
                 CallbackQueryHandler(violation_delete_start, pattern="^VIOL_DELETE$"),
@@ -2007,6 +2068,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
