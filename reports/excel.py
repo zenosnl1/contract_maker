@@ -163,6 +163,9 @@ def build_stats_excel(rows):
     # ---- Заголовки ----
 
     ws2.append([headers_map.get(k, k) for k in keys])
+    # ---- Закрепляем верхнюю строку и первый столбец ----
+    ws2.freeze_panes = "B2"
+    ws2.auto_filter.ref = ws2.dimensions
 
     for col in range(1, len(keys) + 1):
 
