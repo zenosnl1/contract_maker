@@ -315,7 +315,7 @@ async def violation_cancel(update, context):
 
     await query.message.reply_text(
         "Главное меню:",
-        reply_markup=start_keyboard(),
+        reply_markup=start_keyboard(update.effective_user),
     )
 
     return FlowState.MENU
@@ -327,7 +327,7 @@ async def back_to_menu_callback(update, context):
 
     await query.edit_message_text(
         "Главное меню:",
-        reply_markup=start_keyboard(),
+        reply_markup=start_keyboard(update.effective_user),
     )
 
     return FlowState.MENU
@@ -461,7 +461,7 @@ async def violation_confirm(update, context):
 
     await query.message.reply_text(
         "Главное меню:",
-        reply_markup=start_keyboard(),
+        reply_markup=start_keyboard(update.effective_user),
     )
 
     return FlowState.MENU
@@ -532,7 +532,7 @@ async def violation_delete_select_flat(update, context):
     if not violations:
         await query.edit_message_text(
             "По этому договору нет нарушений.",
-            reply_markup=start_keyboard(),
+            reply_markup=start_keyboard(update.effective_user),
         )
         return FlowState.MENU
 
@@ -567,7 +567,7 @@ async def violation_delete_item(update, context):
 
     await query.message.reply_text(
         "Главное меню:",
-        reply_markup=start_keyboard(),
+        reply_markup=start_keyboard(update.effective_user),
     )
 
     return FlowState.MENU
@@ -654,7 +654,7 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text(
         "🛑 Процесс заполнения остановлен.",
-        reply_markup=start_keyboard(),
+        reply_markup=start_keyboard(update.effective_user),
     )
     return FlowState.MENU
 
@@ -721,7 +721,7 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await query.message.reply_text(
         "Главное меню:",
-        reply_markup=start_keyboard(),
+        reply_markup=start_keyboard(update.effective_user),
     )
 
     return FlowState.MENU
@@ -763,7 +763,7 @@ async def stats_finance_callback(update: Update, context: ContextTypes.DEFAULT_T
 
     await query.message.reply_text(
         "Главное меню:",
-        reply_markup=start_keyboard(),
+        reply_markup=start_keyboard(update.effective_user),
     )
 
     return FlowState.MENU
@@ -857,7 +857,7 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.message.reply_text(
         "Главное меню:",
-        reply_markup=start_keyboard(),
+        reply_markup=start_keyboard(update.effective_user),
     )
 
     return FlowState.MENU
@@ -1198,7 +1198,7 @@ async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text("💾 Сохранено.", reply_markup=None)
     await query.message.reply_text(
         "Главное меню:",
-        reply_markup=start_keyboard(),
+        reply_markup=start_keyboard(update.effective_user),
     )
 
     return FlowState.MENU
@@ -1218,7 +1218,7 @@ async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text("Не Сохранено.", reply_markup=None)
     await query.message.reply_text(
         "Главное меню:",
-        reply_markup=start_keyboard(),
+        reply_markup=start_keyboard(update.effective_user),
     )
 
     return FlowState.MENU
@@ -1341,7 +1341,7 @@ async def show_contract_info_callback(update, context):
 
     await query.message.reply_text(
         "Главное меню:",
-        reply_markup=start_keyboard(),
+        reply_markup=start_keyboard(update.effective_user),
     )
 
     return FlowState.MENU
@@ -1523,7 +1523,7 @@ async def close_cancel(update, context):
 
     await query.message.reply_text(
         "Главное меню:",
-        reply_markup=start_keyboard(),
+        reply_markup=start_keyboard(update.effective_user),
     )
 
     return FlowState.MENU
@@ -1630,7 +1630,7 @@ async def finalize_close(update, context):
 
     await msg.reply_text(
         "✅ Договор закрыт и акт сформирован.",
-        reply_markup=start_keyboard(),
+        reply_markup=start_keyboard(update.effective_user),
     )
 
     context.user_data.clear()
@@ -1851,6 +1851,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
