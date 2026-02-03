@@ -315,13 +315,16 @@ async def booking_finish(update, context):
         "client_name": b["client_name"],
         "client_number": b["client_number"],
         "start_date": start.isoformat(),
-        "end_date": end.isoformat() if end else None,
-        "nights": nights,
         "price_per_day": price,
-        "total_price": total,
         "status": "active",
     }
-
+    
+    # optional поля
+    if end:
+        payload["end_date"] = end.isoformat()
+        payload["nights"] = nights
+        payload["total_price"] = total
+    
     insert_booking(payload)
 
     # --- красиво пользователю ---
@@ -2121,6 +2124,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
