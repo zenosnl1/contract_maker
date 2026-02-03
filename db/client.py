@@ -12,20 +12,45 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
+# ======================================================
+# Bookings DB API
+# ======================================================
+
 def insert_booking(payload: dict):
-    return supabase.table("bookings").insert(payload).execute()
+
+    url = SUPABASE_URL + "/rest/v1/bookings"
+
+    r = requests.post(
+        url,
+        json=payload,
+        headers=HEADERS,
+        timeout=10,
+    )
+
+    print("🟡 BOOKING INSERT:", r.status_code, r.text)
+
+    r.raise_for_status()
+
 
 def fetch_active_bookings():
 
-    resp = (
-        supabase
-        .table("bookings")
-        .select("*")
-        .eq("status", "active")
-        .execute()
+    url = (
+        SUPABASE_URL
+        + "/rest/v1/bookings"
+        + "?status=eq.active"
+        + "&order=flat_number.asc"
     )
 
-    return resp.data or []
+    r = requests.get(
+        url,
+        headers=HEADERS,
+        timeout=10,
+    )
+
+    r.raise_for_status()
+
+    return r.json()
+
 
 def fetch_all_contracts():
 
