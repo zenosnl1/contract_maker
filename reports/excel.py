@@ -84,6 +84,20 @@ def build_stats_excel(rows):
         "invoice_number",
 
         "is_closed",
+
+        "checkout_time",
+
+        "max_people_day",
+        "max_people_night",
+
+        "early_checkout",
+        "early_initiator",
+        "early_reason",
+
+        "refund_unused_amount",
+        "final_refund_amount",
+        "extra_due_amount",
+
     ]
 
     # все реально пришедшие поля
@@ -124,6 +138,20 @@ def build_stats_excel(rows):
         "invoice_number": "Номер счёта",
 
         "is_closed": "Статус договора",
+
+        "checkout_time": "Время выезда",
+
+        "max_people_day": "Макс. гостей днём",
+        "max_people_night": "Макс. гостей ночью",
+
+        "early_checkout": "Досрочный выезд",
+        "early_initiator": "Инициатор выезда",
+        "early_reason": "Причина выезда",
+
+        "refund_unused_amount": "Возврат за непрожитые ночи",
+        "final_refund_amount": "Итоговый возврат",
+        "extra_due_amount": "Доплата клиента",
+
     }
 
     # ---- Заголовки ----
@@ -157,6 +185,16 @@ def build_stats_excel(rows):
 
         if key == "invoice_issued":
             return "Да" if val else "Нет"
+
+        if key == "early_checkout":
+            return "Да" if val else "Нет"
+
+        if key == "early_initiator":
+            return {
+                "tenant": "Клиент",
+                "landlord": "Арендодатель",
+            }.get(val, "-")
+
 
         return val
 
