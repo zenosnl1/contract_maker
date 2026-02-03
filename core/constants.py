@@ -53,6 +53,9 @@ class FlowState(IntEnum):
     PAYMENT_INVOICE = auto()
     PAYMENT_INVOICE_NUMBER = auto()
 
+    WAIT_PHONE = auto()
+
+
 FIELDS = [
     "FLAT_NUMBER",
     "CLIENT_NAME",
