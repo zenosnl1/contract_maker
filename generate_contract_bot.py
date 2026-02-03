@@ -118,7 +118,8 @@ def checkout_keyboard():
 
     return InlineKeyboardMarkup(buttons)
 
-def start_keyboard():
+def start_keyboard(user):
+
     role = get_user_role(user)
 
     buttons = []
@@ -1850,6 +1851,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
