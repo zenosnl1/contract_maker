@@ -902,14 +902,14 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ====== PAYMENT FLOW ======
 
     if field == "DEPOSIT":
-        context.user_data["step"] += 1
-    
+
         await update.message.reply_text(
             "💳 Как производится оплата?",
             reply_markup=payment_method_keyboard(),
         )
     
         return FlowState.PAYMENT_METHOD
+
 
 
     # ---------- ДВИГАЕМСЯ ВПЕРЁД ----------
@@ -1038,12 +1038,31 @@ async def invoice_number_enter(update, context):
     context.user_data["INVOICE_NUMBER"] = update.message.text.strip()
 
     return await continue_after_payment(update, context)
-
+    
 async def continue_after_payment(update, context):
 
-    step = context.user_data["step"]
+    # <<< ТУТ двигаем шаг >>>
+    step = context.user_data["step"] + 1
+    context.user_data["step"] = step
 
+    # если FIELDS закончились — финал
     if step >= len(FIELDS):
+        files = generate_docs(context.user_data)
+        context.user_data["_generated_files"] = files
+
+        msg = update.message or update.callback_query.message
+
+        await msg.reply_text(
+            "📄 Документы готовы.\n\n"
+            "Сохранить договор в базе данных?",
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("💾 Да", callback_data="SAVE_DB"),
+                    InlineKeyboardButton("❌ Нет", callback_data="SKIP_DB"),
+                ]
+            ])
+        )
+
         return FlowState.CONFIRM_SAVE
 
     next_field = FIELDS[step]
@@ -1617,6 +1636,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
