@@ -704,6 +704,14 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         rows = fetch_active_contracts()
+        def flat_key(r):
+            try:
+                return int(r["flat_number"])
+            except Exception:
+                return r["flat_number"]
+        
+        rows = sorted(rows, key=flat_key)
+
     except Exception:
         await query.edit_message_text("⚠️ Ошибка получения данных.", reply_markup=None)
         return FlowState.MENU
@@ -742,7 +750,11 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 manual_refund=None,
             )
             
-            refund_today = preview["refund"]
+            deposit = int(r.get("deposit") or 0)
+
+            refund_today = preview["refund"] - deposit
+            refund_today = max(0, refund_today)
+
             extra_due = preview["extra_due"]
             penalties = preview["penalties"]
 
@@ -751,20 +763,24 @@ async def active_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             print(e)
             continue
     
+        separator = "━━━━━━━━━━━━━━━━━━━━"
+
         lines.append(
+            f"\n{separator}\n\n"
+        
             f"🏠 {r['flat_number']}\n"
             f"👤 {r['client_name']}\n"
             f"📞 {r['client_number']}\n"
             f"📅 {r['start_date']} → {r['end_date']}\n\n"
-    
+        
             f"✅ Прожито: {lived_nights} ночей / {earned} €\n"
             f"⏳ Осталось: {remaining_nights} ночей\n"
-            f"💸 Возврат при выезде сегодня: {refund_today} €\n"
+            f"💰 Депозит: {deposit} €\n"
+            f"💸 Возврат при выезде сегодня (без депозита): {refund_today} €\n"
             f"⚠️ Удержания/долг: {extra_due + penalties} €\n"
-    
-            "—"
+        
+            f"\n{separator}\n"
         )
-
 
     await query.edit_message_text("\n".join(lines), reply_markup=None)
 
@@ -1719,6 +1735,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
