@@ -55,6 +55,12 @@ class FlowState(IntEnum):
 
     WAIT_PHONE = auto()
 
+    BOOKING_MENU = auto()
+    BOOKING_CREATE_FLAT = auto()
+    BOOKING_CREATE_NAME = auto()
+    BOOKING_CREATE_PHONE = auto()
+    BOOKING_CREATE_START = auto()
+    BOOKING_CREATE_END = auto()
 
 FIELDS = [
     "FLAT_NUMBER",
