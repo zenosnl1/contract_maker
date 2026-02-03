@@ -120,8 +120,8 @@ def start_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("▶️ Начать оформление", callback_data="START_FLOW")],
         [InlineKeyboardButton("📥 Импорт договора", callback_data="MENU_IMPORT")],
-        [InlineKeyboardButton("🚨 Нарушения", callback_data="MENU_VIOLATIONS_MENU")],
         [InlineKeyboardButton("✏️ Редактировать договор", callback_data="MENU_EDIT")],
+        [InlineKeyboardButton("🚨 Нарушения", callback_data="MENU_VIOLATIONS_MENU")],
         [InlineKeyboardButton("📊 Статистика", callback_data="MENU_STATS_MENU")],
         [InlineKeyboardButton("👥 Текущие жильцы", callback_data="MENU_ACTIVE")],
     ])
@@ -1636,6 +1636,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
