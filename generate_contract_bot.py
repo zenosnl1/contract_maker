@@ -902,8 +902,6 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ====== PAYMENT FLOW ======
 
     if field == "DEPOSIT":
-
-        # двигаем step сразу за DEPOSIT
         context.user_data["step"] += 1
     
         await update.message.reply_text(
@@ -912,6 +910,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     
         return FlowState.PAYMENT_METHOD
+
 
     # ---------- ДВИГАЕМСЯ ВПЕРЁД ----------
 
@@ -1043,6 +1042,9 @@ async def invoice_number_enter(update, context):
 async def continue_after_payment(update, context):
 
     step = context.user_data["step"]
+
+    if step >= len(FIELDS):
+        return FlowState.CONFIRM_SAVE
 
     next_field = FIELDS[step]
 
@@ -1615,6 +1617,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
