@@ -61,44 +61,50 @@ def build_stats_excel(rows):
 
     # порядок в начале
     preferred = [
+        # --- Договор ---
         "contract_code",
         "flat_number",
+    
+        # --- Клиент ---
         "client_name",
         "client_id",
         "client_number",
-
+        "client_mail",
+        "client_address",
+    
+        # --- Даты ---
         "start_date",
         "end_date",
         "actual_checkout_date",
-
+        "checkout_time",
         "nights",
+    
+        # --- Люди ---
+        "max_people_day",
+        "max_people_night",
+    
+        # --- Оплата ---
         "price_per_day",
         "total_price",
-
         "deposit",
         "returned_deposit",
-        "deposit_comment",
-
+    
         "payment_method",
         "invoice_issued",
         "invoice_number",
-
+    
+        # --- Статус ---
         "is_closed",
-
-        "checkout_time",
-
-        "max_people_day",
-        "max_people_night",
-
         "early_checkout",
         "early_initiator",
         "early_reason",
-
+    
+        # --- Итоги ---
         "refund_unused_amount",
         "final_refund_amount",
         "extra_due_amount",
-
     ]
+
 
     # все реально пришедшие поля
     all_keys = list(rows[0].keys())
