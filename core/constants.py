@@ -4,13 +4,22 @@ CONTRACT_TEMPLATE = "templates/template_contract.docx"
 ACT_TEMPLATE = "templates/template_act.docx"
 CHECKOUT_ACT_TEMPLATE = "templates/template_checkout_act.docx"
 
-ADMIN_USERS = {
+ADMIN_USERNAMES = {
     "@zenosnl",
 }
 
-VIEW_USERS = {
-    "+37129207175",
+ADMIN_PHONES = {
+    
 }
+
+VIEWER_USERNAMES = {
+    
+}
+
+VIEWER_PHONES = {
+    
+}
+
 
 class FlowState(IntEnum):
     MENU = 0
