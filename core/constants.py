@@ -13,7 +13,7 @@ ADMIN_PHONES = {
 }
 
 VIEWER_USERNAMES = {
-    
+    "@zenosnl",
 }
 
 VIEWER_PHONES = {
