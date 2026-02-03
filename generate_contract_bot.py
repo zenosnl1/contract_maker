@@ -134,13 +134,13 @@ def start_keyboard(user):
             [InlineKeyboardButton("▶️ Начать оформление", callback_data="START_FLOW")],
             [InlineKeyboardButton("📥 Импорт договора", callback_data="MENU_IMPORT")],
             [InlineKeyboardButton("✏️ Управление договором", callback_data="MENU_EDIT")],
-            [InlineKeyboardButton("📌 Брони", callback_data="MENU_BOOKINGS")],
             [InlineKeyboardButton("🚨 Нарушения", callback_data="MENU_VIOLATIONS_MENU")],
         ]
 
     # --- admin + viewer ---
     if role in ("admin", "viewer"):
         buttons += [
+            [InlineKeyboardButton("📌 Брони", callback_data="MENU_BOOKINGS")],
             [InlineKeyboardButton("📊 Статистика", callback_data="MENU_STATS_MENU")],
             [InlineKeyboardButton("👥 Текущие жильцы", callback_data="MENU_ACTIVE")],
         ]
@@ -255,7 +255,7 @@ async def booking_date_callback(update, context):
     # ---------- заезд ----------
     if "start_date" not in booking:
 
-        booking["start_date"] = d.strftime("%d.%m.%Y")
+        booking["start_date"] = d.isoformat()
 
         await query.edit_message_text(
             "📅 Выберите дату выезда:",
@@ -265,9 +265,10 @@ async def booking_date_callback(update, context):
         return FlowState.BOOKING_CREATE_END
 
     # ---------- выезд ----------
-    booking["end_date"] = d.strftime("%d.%m.%Y")
+    booking["end_date"] = d.isoformat()
 
     return await booking_finish(update, context)
+
 
 def booking_end_keyboard(start_from):
 
@@ -294,6 +295,7 @@ async def booking_finish(update, context):
 
     b = context.user_data["booking"]
 
+    # --- даты ---
     start = datetime.fromisoformat(b["start_date"]).date()
 
     if b["end_date"]:
@@ -307,6 +309,7 @@ async def booking_finish(update, context):
 
     total = nights * price if nights is not None else None
 
+    # --- payload в БД ---
     payload = {
         "flat_number": b["flat_number"],
         "client_name": b["client_name"],
@@ -321,13 +324,18 @@ async def booking_finish(update, context):
 
     insert_booking(payload)
 
+    # --- красиво пользователю ---
+    start_txt = start.strftime("%d.%m.%Y")
+
+    end_txt = end.strftime("%d.%m.%Y") if end else "❓"
+
     text = (
         "📌 Бронь создана:\n\n"
         f"🏠 Помещение: {b['flat_number']}\n"
         f"👤 Клиент: {b['client_name']}\n"
         f"📞 Телефон: {b['client_number']}\n"
-        f"📅 Заезд: {start.isoformat()}\n"
-        f"📅 Выезд: {end.isoformat() if end else 'пока неизвестно'}\n"
+        f"📅 Заезд: {start_txt}\n"
+        f"📅 Выезд: {end_txt}\n"
         f"🌙 Ночей: {nights if nights is not None else '—'}\n"
         f"💶 Цена/ночь: {price} €\n"
         f"💰 Сумма: {total if total is not None else '—'} €"
@@ -362,18 +370,18 @@ async def booking_list_callback(update, context):
 
     lines = ["📌 Текущие брони:\n"]
 
-    today = date.today()
-
     for r in rows:
 
-        start = datetime.fromisoformat(r["start_date"]).date()
+        start_txt = datetime.fromisoformat(r["start_date"]).strftime("%d.%m.%Y")
 
-        if r["end_date"]:
-            end = datetime.fromisoformat(r["end_date"]).date()
-            nights = r["nights"]
-        else:
-            end = None
-            nights = "?"
+        end_txt = (
+            datetime.fromisoformat(r["end_date"]).strftime("%d.%m.%Y")
+            if r["end_date"]
+            else "❓"
+        )
+
+        nights = r.get("nights") or "—"
+        total = r.get("total_price") or "—"
 
         sep = "━━━━━━━━━━━━━━━━━━━━"
 
@@ -382,10 +390,10 @@ async def booking_list_callback(update, context):
             f"🏠 {r['flat_number']}\n"
             f"👤 {r['client_name']}\n"
             f"📞 {r['client_number']}\n"
-            f"📅 {r['start_date']} → {r['end_date'] or '❓'}\n\n"
+            f"📅 {start_txt} → {end_txt}\n\n"
             f"🌙 Ночей: {nights}\n"
             f"💶 Цена/ночь: {r['price_per_day']} €\n"
-            f"💰 Сумма: {r['total_price'] or '—'} €\n"
+            f"💰 Сумма: {total} €\n"
             f"\n{sep}\n"
         )
 
@@ -397,8 +405,6 @@ async def booking_list_callback(update, context):
     )
 
     return FlowState.MENU
-
-
 
 
 def replace_everywhere(doc, data):
@@ -2115,6 +2121,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
