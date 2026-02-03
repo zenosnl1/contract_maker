@@ -12,6 +12,21 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
+def insert_booking(payload: dict):
+    return supabase.table("bookings").insert(payload).execute()
+
+def fetch_active_bookings():
+
+    resp = (
+        supabase
+        .table("bookings")
+        .select("*")
+        .eq("status", "active")
+        .execute()
+    )
+
+    return resp.data or []
+
 def fetch_all_contracts():
 
     url = (
