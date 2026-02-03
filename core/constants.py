@@ -67,3 +67,45 @@ QUESTIONS = {
     "PRICE_PER_DAY": "Цена за ночь:",
     "DEPOSIT": "Депозит:",
 }
+
+STAT_COLUMNS = [
+    "contract_code",
+    "flat_number",
+    "client_name",
+    "client_number",
+
+    "start_date",
+    "end_date",
+    "actual_checkout_date",
+
+    "nights",
+    "price_per_day",
+    "total_price",
+    "deposit",
+
+    "payment_method",
+
+    "is_closed",
+]
+
+STAT_HEADERS = {
+    "contract_code": "Номер договора",
+    "flat_number": "Квартира",
+
+    "client_name": "Клиент",
+    "client_number": "Телефон",
+
+    "start_date": "Дата заезда",
+    "end_date": "Дата выезда (план)",
+    "actual_checkout_date": "Фактический выезд",
+
+    "nights": "Ночей",
+    "price_per_day": "Цена / ночь",
+    "total_price": "Итого",
+    "deposit": "Депозит",
+
+    "payment_method": "Способ оплаты",
+
+    "is_closed": "Статус",
+}
+
