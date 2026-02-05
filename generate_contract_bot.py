@@ -22,6 +22,7 @@ from db.client import (
     fetch_active_bookings,
     insert_expense,
     insert_fixed_expense,
+    fetch_fixed_expenses,
 )
 from telegram.ext import ApplicationBuilder
 from telegram import Update
@@ -171,6 +172,13 @@ def parse_price(value: str) -> float | None:
 
     return round(amount, 2)
 
+async def back_to_fixed_menu(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    return await show_fixed_expenses_menu(update, context)
+
 
 async def fixed_expenses_menu_callback(update, context):
 
@@ -178,6 +186,42 @@ async def fixed_expenses_menu_callback(update, context):
     await query.answer()
 
     return await show_fixed_expenses_menu(update, context)
+
+async def fixed_expense_list(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    rows = fetch_fixed_expenses()
+
+    if not rows:
+        await query.edit_message_text(
+            "📭 Регулярных расходов пока нет.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_FIXED")],
+            ])
+        )
+        return FlowState.FIXED_EXPENSE_MENU
+
+    lines = ["📅 Регулярные расходы:\n"]
+
+    for r in rows:
+
+        lines.append(
+            f"{r['id']}) {r['item_name']}\n"
+            f"   🔢 Кол-во: {r['quantity']}\n"
+            f"   💶 Цена: {float(r['unit_price']):.2f} €\n"
+            f"   💸 Итого: {float(r['total_price']):.2f} €\n"
+        )
+
+    await query.edit_message_text(
+        "\n".join(lines),
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_FIXED")],
+        ])
+    )
+
+    return FlowState.FIXED_EXPENSE_MENU
 
 
 async def show_fixed_expenses_menu(update, context):
@@ -2478,6 +2522,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
