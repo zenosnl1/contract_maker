@@ -164,6 +164,18 @@ async def expenses_menu_callback(update, context):
 
     return FlowState.EXPENSES_MENU
 
+async def expense_add_start(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data["expense"] = {}
+
+    await query.edit_message_text("Введите сумму расхода:")
+
+    return FlowState.EXPENSE_ENTER_AMOUNT
+
+
 async def expense_enter_amount(update, context):
 
     txt = update.message.text.strip()
@@ -172,21 +184,20 @@ async def expense_enter_amount(update, context):
         await update.message.reply_text("Введите сумму цифрами.")
         return FlowState.EXPENSE_ENTER_AMOUNT
 
-    context.user_data["expense"] = {
-        "amount": int(txt),
-    }
+    context.user_data["expense"]["amount"] = int(txt)
 
     await update.message.reply_text(
         "Выберите дату:",
         reply_markup=InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("📅 Сегодня", callback_data="EXP_DATE_TODAY"),
-                InlineKeyboardButton("✍️ Вписать вручную", callback_data="EXP_DATE_MANUAL"),
+                InlineKeyboardButton("✍️ Вписать дату вручную", callback_data="EXP_DATE_MANUAL"),
             ]
         ])
     )
 
     return FlowState.EXPENSE_DATE_CHOICE
+
 
 async def expense_date_today(update, context):
 
@@ -2243,6 +2254,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
