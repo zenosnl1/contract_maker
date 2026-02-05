@@ -21,7 +21,6 @@ from db.client import (
     insert_booking,
     fetch_active_bookings,
     insert_expense,
-    insert_fixed_expense,
     fetch_fixed_expenses,
     fetch_expenses_last_30_days,
     fetch_fixed_expense_by_id,
@@ -283,15 +282,6 @@ async def fixed_expense_delete_enter(update, context):
 
     return await show_fixed_expenses_menu(update, context)
 
-async def fixed_expense_edit_start(update, context):
-
-    query = update.callback_query
-    await query.answer()
-
-    await query.edit_message_text("Введите ID регулярного расхода для редактирования:")
-
-    return FlowState.FIXED_EXPENSE_EDIT_SELECT
-
 async def fixed_expense_edit_select(update, context):
 
     txt = update.message.text.strip()
@@ -481,6 +471,67 @@ async def expenses_menu_callback(update, context):
 
     return FlowState.EXPENSES_MENU
 
+async def fixed_expense_delete_enter(update, context):
+
+    txt = update.message.text.strip()
+
+    if not txt.isdigit():
+        await update.message.reply_text("Введите числовой ID.")
+        return FlowState.FIXED_EXPENSE_DELETE_SELECT
+
+    fid = int(txt)
+
+    row = fetch_fixed_expense_by_id(fid)
+
+    if not row:
+        await update.message.reply_text("❌ Расход с таким ID не найден.")
+        return FlowState.FIXED_EXPENSE_DELETE_SELECT
+
+    context.user_data["delete_fixed_expense"] = row
+
+    await update.message.reply_text(
+        f"Удалить этот регулярный расход?\n\n"
+        f"{row['id']}) {row['item_name']}\n"
+        f"Кол-во: {row['quantity']}\n"
+        f"Цена: {row['unit_price']} €\n"
+        f"Итого: {row['total_price']} €",
+        reply_markup=InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("✅ Удалить", callback_data="FIXED_DELETE_CONFIRM"),
+                InlineKeyboardButton("❌ Отмена", callback_data="BACK_TO_FIXED"),
+            ]
+        ])
+    )
+
+    return FlowState.FIXED_EXPENSE_DELETE_CONFIRM
+
+async def fixed_expense_delete_confirm(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    row = context.user_data.pop("delete_fixed_expense", None)
+
+    if not row:
+        return await show_fixed_expenses_menu(update, context)
+
+    delete_fixed_expense(row["id"])
+
+    await query.edit_message_text("🗑 Регулярный расход удалён.")
+
+    return await show_fixed_expenses_menu(update, context)
+
+async def back_to_fixed(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data.pop("delete_fixed_expense", None)
+
+    return await show_fixed_expenses_menu(update, context)
+
+
+
 async def expenses_last30_list(update, context):
 
     query = update.callback_query
@@ -490,15 +541,14 @@ async def expenses_last30_list(update, context):
 
     if not rows:
         await query.edit_message_text(
-            "📭 *За последние 30 дней расходов не найдено.*",
+            "📭 За последние 30 дней расходов не найдено.",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_EXPENSES")],
             ]),
-            parse_mode="Markdown",
         )
         return FlowState.EXPENSES_MENU
 
-    lines = ["📆 *Расходы за последние 30 дней*\n"]
+    lines = ["📆 Расходы за последние 30 дней\n"]
 
     total = 0.0
 
@@ -510,30 +560,27 @@ async def expenses_last30_list(update, context):
 
         cat_key = r["category"]
         cat_label = EXPENSE_CATEGORIES.get(cat_key, cat_key)
-        
+
         pay = "Наличные" if r["payment_method"] == "cash" else "С фирмы"
-        
+
         lines.append(
-            f"Дата: {dt}\n"
+            f"📅 {dt}\n"
             f"{cat_label}\n"
-            f"Сумма: {float(r['amount']):.2f} €\n"
-            f"Оплата: {pay}\n"
+            f"💶 {float(r['amount']):.2f} €\n"
+            f"💳 {pay}\n"
         )
 
     lines.append("━━━━━━━━━━━━")
-    lines.append(f"💸 *Итого за 30 дней:* {total:.2f} €")
+    lines.append(f"💸 Итого за 30 дней: {total:.2f} €")
 
     await query.edit_message_text(
         "\n".join(lines),
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_EXPENSES")],
         ]),
-        parse_mode="Markdown",
     )
 
     return FlowState.EXPENSES_MENU
-
-
 
 async def expense_payment_chosen(update, context):
 
@@ -585,11 +632,16 @@ async def expense_enter_amount(update, context):
 
     txt = update.message.text.strip()
 
-    if not txt.isdigit():
-        await update.message.reply_text("Введите сумму цифрами.")
+    amount = parse_price(txt)
+
+    if amount is None:
+        await update.message.reply_text(
+            "Введите сумму. Пример:\n"
+            "12\n12.5\n12,5"
+        )
         return FlowState.EXPENSE_ENTER_AMOUNT
 
-    context.user_data["expense"]["amount"] = int(txt)
+    context.user_data["expense"]["amount"] = amount
 
     await update.message.reply_text(
         "Выберите дату:",
@@ -602,6 +654,7 @@ async def expense_enter_amount(update, context):
     )
 
     return FlowState.EXPENSE_DATE_CHOICE
+
 
 
 async def expense_date_today(update, context):
@@ -2684,6 +2737,10 @@ def main():
             FlowState.FIXED_EXPENSE_EDIT_SELECT: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, fixed_expense_edit_select),
             ],
+            FlowState.FIXED_EXPENSE_DELETE_CONFIRM: [
+                CallbackQueryHandler(fixed_expense_delete_confirm, pattern="^FIXED_DELETE_CONFIRM$"),
+                CallbackQueryHandler(back_to_fixed, pattern="^BACK_TO_FIXED$"),
+            ],
         },
         fallbacks=[CommandHandler("stop", stop)],
         allow_reentry=True,
@@ -2706,6 +2763,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
