@@ -205,7 +205,11 @@ async def fixed_expense_list(update, context):
 
     lines = ["📅 Регулярные расходы:\n"]
 
+    total_all = 0.0
+
     for r in rows:
+
+        total_all += float(r["total_price"])
 
         lines.append(
             f"{r['id']}) {r['item_name']}\n"
@@ -213,6 +217,9 @@ async def fixed_expense_list(update, context):
             f"   💶 Цена: {float(r['unit_price']):.2f} €\n"
             f"   💸 Итого: {float(r['total_price']):.2f} €\n"
         )
+
+    lines.append("━━━━━━━━━━━━")
+    lines.append(f"💸 Общий регулярный расход: {total_all:.2f} €")
 
     await query.edit_message_text(
         "\n".join(lines),
@@ -222,6 +229,7 @@ async def fixed_expense_list(update, context):
     )
 
     return FlowState.FIXED_EXPENSE_MENU
+
 
 
 async def show_fixed_expenses_menu(update, context):
@@ -2513,6 +2521,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
