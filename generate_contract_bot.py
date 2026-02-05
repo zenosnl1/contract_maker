@@ -24,6 +24,9 @@ from db.client import (
     insert_fixed_expense,
     fetch_fixed_expenses,
     fetch_expenses_last_30_days,
+    fetch_fixed_expense_by_id,
+    delete_fixed_expense,
+    update_fixed_expense,
 )
 from telegram.ext import ApplicationBuilder
 from telegram import Update
@@ -242,11 +245,118 @@ async def show_fixed_expenses_menu(update, context):
             [InlineKeyboardButton("📋 Просмотреть", callback_data="FIXED_LIST")],
             [InlineKeyboardButton("➕ Создать", callback_data="FIXED_CREATE")],
             [InlineKeyboardButton("✏️ Отредактировать", callback_data="FIXED_EDIT")],
+            [InlineKeyboardButton("🗑 Удалить", callback_data="FIXED_DELETE")],
             [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_EXPENSES")],
         ])
     )
 
     return FlowState.FIXED_EXPENSE_MENU
+
+async def fixed_expense_delete_start(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text("Введите ID регулярного расхода для удаления:")
+
+    return FlowState.FIXED_EXPENSE_DELETE_SELECT
+
+async def fixed_expense_delete_enter(update, context):
+
+    txt = update.message.text.strip()
+
+    if not txt.isdigit():
+        await update.message.reply_text("Введите числовой ID.")
+        return FlowState.FIXED_EXPENSE_DELETE_SELECT
+
+    fid = int(txt)
+
+    row = fetch_fixed_expense_by_id(fid)
+
+    if not row:
+        await update.message.reply_text("❌ Расход с таким ID не найден.")
+        return FlowState.FIXED_EXPENSE_DELETE_SELECT
+
+    delete_fixed_expense(fid)
+
+    await update.message.reply_text("🗑 Регулярный расход удалён.")
+
+    return await show_fixed_expenses_menu(update, context)
+
+async def fixed_expense_edit_start(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text("Введите ID регулярного расхода для редактирования:")
+
+    return FlowState.FIXED_EXPENSE_EDIT_SELECT
+
+async def fixed_expense_edit_select(update, context):
+
+    txt = update.message.text.strip()
+
+    if not txt.isdigit():
+        await update.message.reply_text("Введите числовой ID.")
+        return FlowState.FIXED_EXPENSE_EDIT_SELECT
+
+    fid = int(txt)
+
+    row = fetch_fixed_expense_by_id(fid)
+
+    if not row:
+        await update.message.reply_text("❌ Расход не найден.")
+        return FlowState.FIXED_EXPENSE_EDIT_SELECT
+
+    context.user_data["edit_fixed"] = row
+
+    await update.message.reply_text(
+        f"Редактирование:\n\n"
+        f"{row['id']}) {row['item_name']}\n"
+        f"Кол-во: {row['quantity']}\n"
+        f"Цена: {row['unit_price']} €\n\n"
+        "Введите новое количество:"
+    )
+
+    return FlowState.FIXED_EXPENSE_CREATE_QTY
+
+async def fixed_expense_edit_qty(update, context):
+
+    txt = update.message.text.strip()
+
+    if not txt.isdigit():
+        await update.message.reply_text("Введите число.")
+        return FlowState.FIXED_EXPENSE_CREATE_QTY
+
+    context.user_data["edit_fixed"]["quantity"] = int(txt)
+
+    await update.message.reply_text("Введите новую цену:")
+
+    return FlowState.FIXED_EXPENSE_CREATE_PRICE
+
+async def fixed_expense_edit_price(update, context):
+
+    txt = update.message.text.strip()
+
+    price = parse_price(txt)
+
+    if price is None:
+        await update.message.reply_text("Введите цену, например 12,5")
+        return FlowState.FIXED_EXPENSE_CREATE_PRICE
+
+    fe = context.user_data["edit_fixed"]
+
+    payload = {
+        "quantity": fe["quantity"],
+        "unit_price": price,
+        "total_price": fe["quantity"] * price,
+    }
+
+    update_fixed_expense(fe["id"], payload)
+
+    await update.message.reply_text("✅ Регулярный расход обновлён.")
+
+    return await show_fixed_expenses_menu(update, context)
 
 
 async def fixed_expense_create_start(update, context):
@@ -2542,6 +2652,7 @@ def main():
                 CallbackQueryHandler(fixed_expense_list, pattern="^FIXED_LIST$"),
                 CallbackQueryHandler(fixed_expense_create_start, pattern="^FIXED_CREATE$"),
                 CallbackQueryHandler(fixed_expense_edit_start, pattern="^FIXED_EDIT$"),
+                CallbackQueryHandler(fixed_expense_delete_start, pattern="^FIXED_DELETE$"),
             ],
             FlowState.FIXED_EXPENSE_CREATE_NAME: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, fixed_expense_name_enter),
@@ -2554,8 +2665,13 @@ def main():
             FlowState.FIXED_EXPENSE_CREATE_PRICE: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, fixed_expense_price_enter),
             ],
-
-
+            FlowState.FIXED_EXPENSE_DELETE_SELECT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, fixed_expense_delete_enter),
+            ],
+            
+            FlowState.FIXED_EXPENSE_EDIT_SELECT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, fixed_expense_edit_select),
+            ],
         },
         fallbacks=[CommandHandler("stop", stop)],
         allow_reentry=True,
@@ -2578,6 +2694,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
