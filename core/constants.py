@@ -143,3 +143,12 @@ STAT_HEADERS = {
     "is_closed": "Статус",
 }
 
+EXPENSE_CATEGORIES = {
+    "cleaning": "🧹 Уборка",
+    "repair": "🛠 Ремонт",
+    "supplies": "🧻 Расходники",
+    "utilities": "💡 Коммунальные",
+    "booking": "🏨 Booking / комиссия",
+    "other": "📦 Другое",
+}
+
