@@ -1,6 +1,6 @@
 import os
 import requests
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from core.utils import build_contract_code
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
@@ -42,6 +42,23 @@ def fetch_fixed_expenses():
     r.raise_for_status()
 
     return r.json()
+
+def fetch_expenses_last_30_days():
+
+    since = (date.today() - timedelta(days=30)).isoformat()
+
+    url = (
+        SUPABASE_URL
+        + "/rest/v1/expenses"
+        + f"?date=gte.{since}&order=date.desc"
+    )
+
+    r = requests.get(url, headers=HEADERS, timeout=10)
+
+    r.raise_for_status()
+
+    return r.json()
+
 
 def insert_fixed_expense(payload: dict):
 
