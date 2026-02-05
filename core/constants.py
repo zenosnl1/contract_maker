@@ -70,6 +70,15 @@ class FlowState(IntEnum):
     EXPENSE_CATEGORY = auto()
     EXPENSE_PAYMENT_METHOD = auto()
 
+    FIXED_EXPENSE_MENU = auto()
+
+    FIXED_EXPENSE_CREATE_AMOUNT = auto()
+    FIXED_EXPENSE_CREATE_CATEGORY = auto()
+    FIXED_EXPENSE_CREATE_PAYMENT = auto()
+
+    FIXED_EXPENSE_LIST = auto()
+    FIXED_EXPENSE_EDIT_SELECT = auto()
+
 FIELDS = [
     "FLAT_NUMBER",
     "CLIENT_NAME",
