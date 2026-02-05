@@ -27,6 +27,22 @@ def insert_expense(payload):
 
     r.raise_for_status()
 
+def insert_fixed_expense(payload: dict):
+
+    url = SUPABASE_URL + "/rest/v1/fixed_expenses"
+
+    r = requests.post(
+        url,
+        json=payload,
+        headers=HEADERS,
+        timeout=10,
+    )
+
+    print("🟡 FIXED EXPENSE INSERT:", r.status_code, r.text)
+
+    r.raise_for_status()
+
+
 async def expense_payment_chosen(update, context):
 
     query = update.callback_query
