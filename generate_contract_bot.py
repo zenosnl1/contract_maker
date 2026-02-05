@@ -352,7 +352,7 @@ async def expenses_menu_callback(update, context):
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("➕ Учесть расход", callback_data="EXPENSE_ADD")],
             [InlineKeyboardButton("📆 Расходы за 30 дней", callback_data="EXPENSE_LAST30")],
-            [InlineKeyboardButton("📅 Постоянные расходы", callback_data="EXPENSE_FIXED")],
+            [InlineKeyboardButton("⏳ Постоянные расходы", callback_data="EXPENSE_FIXED")],
             [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_MENU")],
         ])
     )
@@ -2578,6 +2578,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
