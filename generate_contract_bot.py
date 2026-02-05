@@ -2231,6 +2231,25 @@ def main():
                 CallbackQueryHandler(expense_add_start, pattern="^EXPENSE_ADD$"),
                 CallbackQueryHandler(back_to_menu_callback, pattern="^BACK_TO_MENU$"),
             ],
+            FlowState.EXPENSE_ENTER_AMOUNT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, expense_enter_amount),
+            ],
+            FlowState.EXPENSE_DATE_CHOICE: [
+                CallbackQueryHandler(expense_date_today, pattern="^EXP_DATE_TODAY$"),
+                CallbackQueryHandler(expense_date_manual_start, pattern="^EXP_DATE_MANUAL$"),
+            ],
+            
+            FlowState.EXPENSE_DATE_MANUAL: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, expense_date_manual_enter),
+            ],
+            
+            FlowState.EXPENSE_CATEGORY: [
+                CallbackQueryHandler(expense_category_chosen, pattern="^EXP_CAT:"),
+            ],
+            
+            FlowState.EXPENSE_PAYMENT_METHOD: [
+                CallbackQueryHandler(expense_payment_chosen, pattern="^EXP_PAY_"),
+            ],
 
         },
         fallbacks=[CommandHandler("stop", stop)],
@@ -2254,6 +2273,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
