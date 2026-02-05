@@ -2228,7 +2228,7 @@ def main():
                 CallbackQueryHandler(booking_end_unknown, pattern="^BOOKING_END_UNKNOWN$"),
             ],
             FlowState.EXPENSES_MENU: [
-                CallbackQueryHandler(expenses_add_start, pattern="^EXPENSE_ADD$"),
+                CallbackQueryHandler(expense_add_start, pattern="^EXPENSE_ADD$"),
                 CallbackQueryHandler(back_to_menu_callback, pattern="^BACK_TO_MENU$"),
             ],
 
@@ -2254,6 +2254,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
