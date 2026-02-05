@@ -27,6 +27,36 @@ def insert_expense(payload):
 
     r.raise_for_status()
 
+def fetch_fixed_expense_by_id(fid):
+
+    url = SUPABASE_URL + f"/rest/v1/fixed_expenses?id=eq.{fid}"
+
+    r = requests.get(url, headers=HEADERS, timeout=10)
+    r.raise_for_status()
+
+    rows = r.json()
+    return rows[0] if rows else None
+
+def delete_fixed_expense(fid):
+
+    url = SUPABASE_URL + f"/rest/v1/fixed_expenses?id=eq.{fid}"
+
+    r = requests.delete(url, headers=HEADERS, timeout=10)
+    r.raise_for_status()
+
+def update_fixed_expense(fid, payload):
+
+    url = SUPABASE_URL + f"/rest/v1/fixed_expenses?id=eq.{fid}"
+
+    r = requests.patch(
+        url,
+        headers={**HEADERS, "Prefer": "return=minimal"},
+        json=payload,
+        timeout=10,
+    )
+    r.raise_for_status()
+
+
 def fetch_fixed_expenses():
 
     url = SUPABASE_URL + "/rest/v1/fixed_expenses?order=id.asc"
