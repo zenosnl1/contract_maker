@@ -50,7 +50,7 @@ def fetch_expenses_last_30_days():
     url = (
         SUPABASE_URL
         + "/rest/v1/expenses"
-        + f"?date=gte.{since}&order=date.desc"
+        + f"?expense_date=gte.{since}&order=expense_date.desc"
     )
 
     r = requests.get(url, headers=HEADERS, timeout=10)
