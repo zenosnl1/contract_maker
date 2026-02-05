@@ -555,7 +555,14 @@ async def expenses_last30_list(update, context):
 
         total += float(r["amount"])
 
-        dt = r["expense_date"]
+        raw_date = r["expense_date"]
+
+        try:
+            dt_obj = datetime.fromisoformat(raw_date)
+            dt = dt_obj.strftime("%d.%m.%Y")
+        except Exception:
+            dt = raw_date
+
 
         cat_key = r["category"]
         cat_label = EXPENSE_CATEGORIES.get(cat_key, cat_key)
@@ -2762,6 +2769,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
