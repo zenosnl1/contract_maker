@@ -4,7 +4,7 @@ import http.server
 import socketserver
 from core.security import access_guard, get_user_role
 from core.constants import FIELDS, QUESTIONS, FlowState
-from core.constants import CONTRACT_TEMPLATE, ACT_TEMPLATE, CHECKOUT_ACT_TEMPLATE
+from core.constants import CONTRACT_TEMPLATE, ACT_TEMPLATE, CHECKOUT_ACT_TEMPLATE, EXPENSE_CATEGORIES
 from core.checkout_act import build_checkout_act
 from reports.excel import build_stats_excel
 from reports.finance import build_finance_report
@@ -135,6 +135,7 @@ def start_keyboard(user):
             [InlineKeyboardButton("📥 Импорт договора", callback_data="MENU_IMPORT")],
             [InlineKeyboardButton("✏️ Управление договором", callback_data="MENU_EDIT")],
             [InlineKeyboardButton("🚨 Нарушения", callback_data="MENU_VIOLATIONS_MENU")],
+            [InlineKeyboardButton("💸 Расходы", callback_data="MENU_EXPENSES")],
         ]
 
     # --- admin + viewer ---
@@ -146,6 +147,118 @@ def start_keyboard(user):
         ]
 
     return InlineKeyboardMarkup(buttons)
+
+async def expenses_menu_callback(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text(
+        "💸 Расходы\n\nВыберите действие:",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("➕ Учесть расход", callback_data="EXPENSE_ADD")],
+            [InlineKeyboardButton("📅 Постоянные расходы", callback_data="EXPENSE_FIXED")],
+            [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_MENU")],
+        ])
+    )
+
+    return FlowState.EXPENSES_MENU
+
+async def expense_enter_amount(update, context):
+
+    txt = update.message.text.strip()
+
+    if not txt.isdigit():
+        await update.message.reply_text("Введите сумму цифрами.")
+        return FlowState.EXPENSE_ENTER_AMOUNT
+
+    context.user_data["expense"] = {
+        "amount": int(txt),
+    }
+
+    await update.message.reply_text(
+        "Выберите дату:",
+        reply_markup=InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("📅 Сегодня", callback_data="EXP_DATE_TODAY"),
+                InlineKeyboardButton("✍️ Вписать вручную", callback_data="EXP_DATE_MANUAL"),
+            ]
+        ])
+    )
+
+    return FlowState.EXPENSE_DATE_CHOICE
+
+async def expense_date_today(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data["expense"]["date"] = date.today().isoformat()
+
+    return await ask_expense_category(update, context)
+
+async def expense_date_manual_start(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text("Введите дату (ДД.ММ.ГГГГ):")
+
+    return FlowState.EXPENSE_DATE_MANUAL
+
+async def expense_date_manual_enter(update, context):
+
+    txt = update.message.text.strip()
+
+    try:
+        d = datetime.strptime(txt, "%d.%m.%Y").date()
+    except ValueError:
+        await update.message.reply_text("Формат ДД.ММ.ГГГГ")
+        return FlowState.EXPENSE_DATE_MANUAL
+
+    context.user_data["expense"]["date"] = d.isoformat()
+
+    return await ask_expense_category(update, context)
+
+def expense_category_keyboard():
+
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(v, callback_data=f"EXP_CAT:{k}")]
+        for k, v in EXPENSE_CATEGORIES.items()
+    ])
+
+async def ask_expense_category(update, context):
+
+    msg = update.message or update.callback_query.message
+
+    await msg.reply_text(
+        "Выберите категорию расхода:",
+        reply_markup=expense_category_keyboard(),
+    )
+
+    return FlowState.EXPENSE_CATEGORY
+
+async def expense_category_chosen(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    key = query.data.split(":")[1]
+
+    context.user_data["expense"]["category"] = key
+
+    await query.edit_message_text(
+        "Как оплачен расход?",
+        reply_markup=InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🏢 С фирмы", callback_data="EXP_PAY_COMPANY"),
+                InlineKeyboardButton("💵 Наличными", callback_data="EXP_PAY_CASH"),
+            ]
+        ])
+    )
+
+    return FlowState.EXPENSE_PAYMENT_METHOD
+
 
 def date_keyboard(days=30, start_from=None):
 
@@ -2124,6 +2237,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
