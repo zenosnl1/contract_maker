@@ -308,7 +308,7 @@ async def fixed_expense_edit_select(update, context):
         await update.message.reply_text("❌ Расход не найден.")
         return FlowState.FIXED_EXPENSE_EDIT_SELECT
 
-    context.user_data["edit_fixed"] = row
+    context.user_data["fixed_expense"] = dict(row)
 
     await update.message.reply_text(
         f"Редактирование:\n\n"
@@ -328,7 +328,7 @@ async def fixed_expense_edit_qty(update, context):
         await update.message.reply_text("Введите число.")
         return FlowState.FIXED_EXPENSE_CREATE_QTY
 
-    context.user_data["edit_fixed"]["quantity"] = int(txt)
+    context.user_data["fixed_expense"]["quantity"] = int(txt)
 
     await update.message.reply_text("Введите новую цену:")
 
@@ -344,7 +344,7 @@ async def fixed_expense_edit_price(update, context):
         await update.message.reply_text("Введите цену, например 12,5")
         return FlowState.FIXED_EXPENSE_CREATE_PRICE
 
-    fe = context.user_data["edit_fixed"]
+    fe = context.user_data["fixed_expense"]
 
     payload = {
         "quantity": fe["quantity"],
@@ -2694,6 +2694,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
