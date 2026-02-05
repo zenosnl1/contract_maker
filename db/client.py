@@ -263,7 +263,10 @@ def save_contract_to_db(data, files):
         "payment_method": data.get("PAYMENT_METHOD"),
         "invoice_issued": data.get("INVOICE_ISSUED"),
         "invoice_number": data.get("INVOICE_NUMBER"),
-
+        "fixed_per_booking": round(
+            float(data.get("FIXED_PER_BOOKING", 10)),
+            2,
+        ),
     }
 
     r = requests.post(url, json=payload, headers=headers, timeout=10)
