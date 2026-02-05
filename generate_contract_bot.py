@@ -2077,6 +2077,7 @@ def main():
                 CallbackQueryHandler(import_flow_callback, pattern="^MENU_IMPORT$"),
                 CallbackQueryHandler(bookings_menu_callback, pattern="^MENU_BOOKINGS$"),
                 CallbackQueryHandler(booking_list_callback, pattern="^BOOKING_LIST$"),
+                CallbackQueryHandler(expenses_menu_callback, pattern="^MENU_EXPENSES$"),
                 CallbackQueryHandler(violations_menu_callback, pattern="^MENU_VIOLATIONS_MENU$"),
                 CallbackQueryHandler(violation_start_callback, pattern="^VIOL_ADD$"),
                 CallbackQueryHandler(violation_delete_start, pattern="^VIOL_DELETE$"),
@@ -2215,6 +2216,11 @@ def main():
                 CallbackQueryHandler(date_callback, pattern="^DATE:"),
                 CallbackQueryHandler(booking_end_unknown, pattern="^BOOKING_END_UNKNOWN$"),
             ],
+            FlowState.EXPENSES_MENU: [
+                CallbackQueryHandler(expenses_add_start, pattern="^EXPENSE_ADD$"),
+                CallbackQueryHandler(back_to_menu_callback, pattern="^BACK_TO_MENU$"),
+            ],
+
         },
         fallbacks=[CommandHandler("stop", stop)],
         allow_reentry=True,
@@ -2237,6 +2243,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
