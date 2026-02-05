@@ -79,6 +79,7 @@ class FlowState(IntEnum):
     FIXED_EXPENSE_CREATE_QTY = auto()
     FIXED_EXPENSE_CREATE_PRICE = auto()
     FIXED_EXPENSE_DELETE_SELECT = auto()
+    FIXED_EXPENSE_DELETE_CONFIRM = auto()
 
 
 FIELDS = [
