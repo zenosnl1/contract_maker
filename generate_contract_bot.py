@@ -20,6 +20,7 @@ from db.client import (
     close_contract_full,
     insert_booking,
     fetch_active_bookings,
+    insert_fixed_expenses,
 )
 from telegram.ext import ApplicationBuilder
 from telegram import Update
@@ -164,6 +165,77 @@ async def fixed_expenses_menu_callback(update, context):
     )
 
     return FlowState.FIXED_EXPENSE_MENU
+
+async def fixed_expense_create_start(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data["fixed_expense"] = {}
+
+    await query.edit_message_text("Введите название предмета:")
+
+    return FlowState.FIXED_EXPENSE_CREATE_NAME
+
+async def fixed_expense_name_enter(update, context):
+
+    context.user_data["fixed_expense"]["item_name"] = update.message.text.strip()
+
+    await update.message.reply_text("Введите количество:")
+
+    return FlowState.FIXED_EXPENSE_CREATE_QTY
+
+async def fixed_expense_qty_enter(update, context):
+
+    txt = update.message.text.strip()
+
+    if not txt.isdigit():
+        await update.message.reply_text("Введите количество цифрами.")
+        return FlowState.FIXED_EXPENSE_CREATE_QTY
+
+    context.user_data["fixed_expense"]["quantity"] = int(txt)
+
+    await update.message.reply_text("Введите цену за единицу:")
+
+    return FlowState.FIXED_EXPENSE_CREATE_PRICE
+
+async def fixed_expense_price_enter(update, context):
+
+    txt = update.message.text.strip()
+
+    if not txt.isdigit():
+        await update.message.reply_text("Введите цену цифрами.")
+        return FlowState.FIXED_EXPENSE_CREATE_PRICE
+
+    unit_price = int(txt)
+
+    fe = context.user_data["fixed_expense"]
+    fe["unit_price"] = unit_price
+
+    total = fe["quantity"] * unit_price
+    fe["total_price"] = total
+
+    from db.client import insert_fixed_expense
+
+    insert_fixed_expense({
+        "item_name": fe["item_name"],
+        "quantity": fe["quantity"],
+        "unit_price": fe["unit_price"],
+        "total_price": total,
+    })
+
+    await update.message.reply_text(
+        "✅ Регулярный расход сохранён:\n\n"
+        f"📦 {fe['item_name']}\n"
+        f"🔢 Кол-во: {fe['quantity']}\n"
+        f"💶 Цена: {fe['unit_price']} €\n"
+        f"💸 Итого: {total} €"
+    )
+
+    context.user_data.pop("fixed_expense", None)
+
+    return await fixed_expenses_menu_callback(update, context)
+
 
 async def fixed_expense_list(update, context):
 
@@ -2345,6 +2417,17 @@ def main():
                 CallbackQueryHandler(fixed_expense_create_start, pattern="^FIXED_CREATE$"),
                 CallbackQueryHandler(fixed_expense_edit_start, pattern="^FIXED_EDIT$"),
             ],
+            FlowState.FIXED_EXPENSE_CREATE_NAME: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, fixed_expense_name_enter),
+            ],
+            
+            FlowState.FIXED_EXPENSE_CREATE_QTY: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, fixed_expense_qty_enter),
+            ],
+            
+            FlowState.FIXED_EXPENSE_CREATE_PRICE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, fixed_expense_price_enter),
+            ],
 
 
         },
@@ -2369,6 +2452,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
