@@ -316,15 +316,6 @@ async def fixed_expense_price_enter(update, context):
     return await show_fixed_expenses_menu(update, context)
 
 
-async def fixed_expense_list(update, context):
-
-    query = update.callback_query
-    await query.answer()
-
-    await query.edit_message_text("📋 Регулярных расходов пока нет.")
-
-    return FlowState.FIXED_EXPENSE_MENU
-
 async def fixed_expense_edit_start(update, context):
 
     query = update.callback_query
@@ -2522,6 +2513,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
