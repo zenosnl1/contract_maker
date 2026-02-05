@@ -63,6 +63,13 @@ class FlowState(IntEnum):
     BOOKING_CREATE_START = auto()
     BOOKING_CREATE_END = auto()
 
+    EXPENSES_MENU = auto()
+    EXPENSE_ENTER_AMOUNT = auto()
+    EXPENSE_DATE_CHOICE = auto()
+    EXPENSE_DATE_MANUAL = auto()
+    EXPENSE_CATEGORY = auto()
+    EXPENSE_PAYMENT_METHOD = auto()
+
 FIELDS = [
     "FLAT_NUMBER",
     "CLIENT_NAME",
