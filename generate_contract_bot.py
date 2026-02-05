@@ -150,6 +150,28 @@ def start_keyboard(user):
 
     return InlineKeyboardMarkup(buttons)
 
+def parse_price(value: str) -> float | None:
+    """
+    Принимает:
+      12
+      12.5
+      12,5
+    Возвращает float или None.
+    """
+
+    txt = value.strip().replace(",", ".")
+
+    try:
+        amount = float(txt)
+    except ValueError:
+        return None
+
+    if amount <= 0:
+        return None
+
+    return round(amount, 2)
+
+
 async def fixed_expenses_menu_callback(update, context):
 
     query = update.callback_query
@@ -211,12 +233,16 @@ async def fixed_expense_qty_enter(update, context):
 async def fixed_expense_price_enter(update, context):
 
     txt = update.message.text.strip()
-
-    if not txt.isdigit():
-        await update.message.reply_text("Введите цену цифрами.")
+    
+    price = parse_price(txt)
+    
+    if price is None:
+        await update.message.reply_text(
+            "Введите цену, например: 12,5 или 12.50"
+        )
         return FlowState.FIXED_EXPENSE_CREATE_PRICE
-
-    unit_price = int(txt)
+    
+    unit_price = price
 
     fe = context.user_data["fixed_expense"]
     fe["unit_price"] = unit_price
@@ -2452,6 +2478,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
