@@ -4,7 +4,6 @@ from collections import defaultdict
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Side, Font
 from openpyxl.utils import get_column_letter
-from db.client import fetch_fixed_expenses
 
 
 GRAY_BORDER = Border(
@@ -45,14 +44,6 @@ def overlap_nights(a_start, a_end, b_start, b_end):
 
 
 def build_finance_report(rows):
-
-    fixed_rows = fetch_fixed_expenses()
-
-    FIXED_PER_BOOKING = sum(
-        float(r["total_price"])
-        for r in fixed_rows
-    )
-
     
     wb = Workbook()
     ws = wb.active
@@ -110,6 +101,8 @@ def build_finance_report(rows):
 
             price = int(r["price_per_day"])
             flat = r["flat_number"]
+            fixed = float(r.get("fixed_per_booking") or 0)
+
 
         except Exception:
             continue
@@ -151,7 +144,7 @@ def build_finance_report(rows):
 
                 # ---- расходы ТОЛЬКО в месяце заезда ----
                 if cur.year == start.year and cur.month == start.month:
-                    bucket["expenses"] += FIXED_PER_BOOKING
+                    bucket["expenses"] += fixed
 
             # следующий месяц
             if cur.month == 12:
@@ -195,7 +188,7 @@ def build_finance_report(rows):
 
             load = round(b["nights"] / days_in_month * 100, 1)
 
-            profit = b["realized"] - b["expenses"]
+            profit = round(b["realized"] - b["expenses"], 2)
 
             month_realized += b["realized"]
             month_unrealized += b["unrealized"]
@@ -233,6 +226,12 @@ def build_finance_report(rows):
         ) if total_possible_nights else 0
 
         ws.append([])
+        
+        month_realized = round(month_realized, 2)
+        month_unrealized = round(month_unrealized, 2)
+        month_potential = round(month_potential, 2)
+        month_expenses = round(month_expenses, 2)
+        month_profit = round(month_profit, 2)
 
         ws.append([
             "ИТОГО",
