@@ -164,6 +164,40 @@ async def expenses_menu_callback(update, context):
 
     return FlowState.EXPENSES_MENU
 
+async def expense_payment_chosen(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "EXP_PAY_COMPANY":
+        method = "company"
+    else:
+        method = "cash"
+
+    exp = context.user_data.get("expense", {})
+
+    payload = {
+        "expense_date": exp["date"],
+        "amount": exp["amount"],
+        "category": exp["category"],
+        "payment_method": method,
+    }
+
+    from db.client import insert_expense
+    insert_expense(payload)
+
+    await query.edit_message_text("✅ Расход сохранён.")
+
+    await query.message.reply_text(
+        "Главное меню:",
+        reply_markup=start_keyboard(update.effective_user),
+    )
+
+    context.user_data.pop("expense", None)
+
+    return FlowState.MENU
+
+
 async def expense_add_start(update, context):
 
     query = update.callback_query
@@ -2273,6 +2307,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
