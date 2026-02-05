@@ -387,7 +387,7 @@ async def expenses_last30_list(update, context):
         dt = r["expense_date"]
 
         cat_key = r["category"]
-        cat_label = EXPENSE_CATEGORY.get(cat_key, cat_key)
+        cat_label = EXPENSE_CATEGORIES.get(cat_key, cat_key)
         
         pay = "Наличные" if r["payment_method"] == "cash" else "С фирмы"
         
@@ -2578,6 +2578,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
