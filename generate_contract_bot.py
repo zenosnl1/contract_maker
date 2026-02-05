@@ -155,7 +155,14 @@ async def fixed_expenses_menu_callback(update, context):
     query = update.callback_query
     await query.answer()
 
-    await query.edit_message_text(
+    return await show_fixed_expenses_menu(update, context)
+
+
+async def show_fixed_expenses_menu(update, context):
+
+    msg = update.message or update.callback_query.message
+
+    await msg.reply_text(
         "📅 Регулярные расходы\n\nВыберите действие:",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("📋 Просмотреть", callback_data="FIXED_LIST")],
@@ -166,6 +173,7 @@ async def fixed_expenses_menu_callback(update, context):
     )
 
     return FlowState.FIXED_EXPENSE_MENU
+
 
 async def fixed_expense_create_start(update, context):
 
@@ -235,7 +243,7 @@ async def fixed_expense_price_enter(update, context):
 
     context.user_data.pop("fixed_expense", None)
 
-    return await fixed_expenses_menu_callback(update, context)
+    return await show_fixed_expenses_menu(update, context)
 
 
 async def fixed_expense_list(update, context):
@@ -2444,6 +2452,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
