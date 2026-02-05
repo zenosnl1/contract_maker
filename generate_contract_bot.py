@@ -338,10 +338,12 @@ async def fixed_expense_edit_price(update, context):
 
     fe = context.user_data["fixed_expense"]
 
+    total = round(fe["quantity"] * price, 3)
+
     payload = {
         "quantity": fe["quantity"],
         "unit_price": price,
-        "total_price": fe["quantity"] * price,
+        "total_price": total,
     }
 
     update_fixed_expense(fe["id"], payload)
@@ -402,7 +404,7 @@ async def fixed_expense_price_enter(update, context):
     fe = context.user_data["fixed_expense"]
     fe["unit_price"] = unit_price
 
-    total = fe["quantity"] * unit_price
+    total = round(fe["quantity"] * unit_price, 3)
     fe["total_price"] = total
 
     payload = {
@@ -426,7 +428,7 @@ async def fixed_expense_price_enter(update, context):
         f"📦 {fe['item_name']}\n"
         f"🔢 Кол-во: {fe['quantity']}\n"
         f"💶 Цена: {fe['unit_price']} €\n"
-        f"💸 Итого: {total} €"
+        f"💸 Итого: {total:.3f} €"
     )
 
     context.user_data.pop("fixed_expense", None)
@@ -2769,6 +2771,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
