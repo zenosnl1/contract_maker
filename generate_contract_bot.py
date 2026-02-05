@@ -148,6 +148,59 @@ def start_keyboard(user):
 
     return InlineKeyboardMarkup(buttons)
 
+async def fixed_expenses_menu_callback(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text(
+        "📅 Регулярные расходы\n\nВыберите действие:",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("📋 Просмотреть", callback_data="FIXED_LIST")],
+            [InlineKeyboardButton("➕ Создать", callback_data="FIXED_CREATE")],
+            [InlineKeyboardButton("✏️ Отредактировать", callback_data="FIXED_EDIT")],
+            [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_EXPENSES")],
+        ])
+    )
+
+    return FlowState.FIXED_EXPENSE_MENU
+
+async def fixed_expense_list(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text("📋 Регулярных расходов пока нет.")
+
+    return FlowState.FIXED_EXPENSE_MENU
+
+async def fixed_expense_create_start(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text("Введите сумму регулярного расхода:")
+
+    return FlowState.FIXED_EXPENSE_CREATE_AMOUNT
+
+async def fixed_expense_edit_start(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text("Введите ID регулярного расхода для редактирования:")
+
+    return FlowState.FIXED_EXPENSE_EDIT_SELECT
+
+
+async def back_to_expenses_menu(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    return await expenses_menu_callback(update, context)
+
+
 async def expenses_menu_callback(update, context):
 
     query = update.callback_query
@@ -2263,6 +2316,7 @@ def main():
             ],
             FlowState.EXPENSES_MENU: [
                 CallbackQueryHandler(expense_add_start, pattern="^EXPENSE_ADD$"),
+                CallbackQueryHandler(fixed_expenses_menu_callback, pattern="^EXPENSE_FIXED$"),
                 CallbackQueryHandler(back_to_menu_callback, pattern="^BACK_TO_MENU$"),
             ],
             FlowState.EXPENSE_ENTER_AMOUNT: [
@@ -2284,6 +2338,14 @@ def main():
             FlowState.EXPENSE_PAYMENT_METHOD: [
                 CallbackQueryHandler(expense_payment_chosen, pattern="^EXP_PAY_"),
             ],
+            FlowState.FIXED_EXPENSE_MENU: [
+                CallbackQueryHandler(fixed_expenses_menu_callback, pattern="^EXPENSE_FIXED$"),
+                CallbackQueryHandler(back_to_expenses_menu, pattern="^BACK_TO_EXPENSES$"),
+                CallbackQueryHandler(fixed_expense_list, pattern="^FIXED_LIST$"),
+                CallbackQueryHandler(fixed_expense_create_start, pattern="^FIXED_CREATE$"),
+                CallbackQueryHandler(fixed_expense_edit_start, pattern="^FIXED_EDIT$"),
+            ],
+
 
         },
         fallbacks=[CommandHandler("stop", stop)],
@@ -2307,6 +2369,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
