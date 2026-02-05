@@ -224,7 +224,7 @@ async def fixed_expense_list(update, context):
     await query.edit_message_text(
         "\n".join(lines),
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_FIXED")],
+            [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_EXPENSES")],
         ])
     )
 
@@ -2565,6 +2565,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
