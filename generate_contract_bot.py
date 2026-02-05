@@ -2018,6 +2018,15 @@ async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
+    rows = fetch_fixed_expenses()
+
+    fixed_sum = round(
+        sum(float(r["total_price"]) for r in rows),
+        2,
+    )
+    
+    context.user_data["FIXED_PER_BOOKING"] = fixed_sum
+
     save_contract_to_db(
         context.user_data,
         context.user_data["_generated_files"],
@@ -2771,6 +2780,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
