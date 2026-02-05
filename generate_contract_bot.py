@@ -20,6 +20,7 @@ from db.client import (
     close_contract_full,
     insert_booking,
     fetch_active_bookings,
+    insert_fixed_expense,
     insert_expense,
     fetch_fixed_expenses,
     fetch_expenses_last_30_days,
@@ -403,8 +404,6 @@ async def fixed_expense_price_enter(update, context):
 
     total = fe["quantity"] * unit_price
     fe["total_price"] = total
-
-    from db.client import insert_fixed_expense
 
     payload = {
         "item_name": fe["item_name"],
@@ -2763,6 +2762,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
