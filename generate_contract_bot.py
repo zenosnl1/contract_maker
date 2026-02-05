@@ -23,6 +23,7 @@ from db.client import (
     insert_expense,
     insert_fixed_expense,
     fetch_fixed_expenses,
+    fetch_expenses_last_30_days,
 )
 from telegram.ext import ApplicationBuilder
 from telegram import Update
@@ -2564,6 +2565,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
