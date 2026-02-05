@@ -4,9 +4,7 @@ from collections import defaultdict
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Side, Font
 from openpyxl.utils import get_column_letter
-
-
-EXPENSE_PER_BOOKING = 10
+from db.client import fetch_fixed_expenses
 
 
 GRAY_BORDER = Border(
@@ -48,6 +46,14 @@ def overlap_nights(a_start, a_end, b_start, b_end):
 
 def build_finance_report(rows):
 
+    fixed_rows = fetch_fixed_expenses()
+
+    FIXED_PER_BOOKING = sum(
+        float(r["total_price"])
+        for r in fixed_rows
+    )
+
+    
     wb = Workbook()
     ws = wb.active
     ws.title = "Финансы"
@@ -145,7 +151,7 @@ def build_finance_report(rows):
 
                 # ---- расходы ТОЛЬКО в месяце заезда ----
                 if cur.year == start.year and cur.month == start.month:
-                    bucket["expenses"] += EXPENSE_PER_BOOKING
+                    bucket["expenses"] += FIXED_PER_BOOKING
 
             # следующий месяц
             if cur.month == 12:
