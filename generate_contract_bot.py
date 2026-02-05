@@ -384,7 +384,7 @@ async def expenses_last30_list(update, context):
         total += float(r["amount"])
 
         lines.append(
-            f"📅 {r['date']} — {r['category']}\n"
+            f"📅 {r['expense_date']} — {r['category']}\n"
             f"💶 {float(r['amount']):.2f} € ({r['payment_method']})\n"
         )
 
@@ -2565,6 +2565,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
