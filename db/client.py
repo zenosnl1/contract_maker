@@ -27,6 +27,22 @@ def insert_expense(payload):
 
     r.raise_for_status()
 
+def fetch_fixed_expenses():
+
+    url = SUPABASE_URL + "/rest/v1/fixed_expenses?order=id.asc"
+
+    r = requests.get(
+        url,
+        headers=HEADERS,
+        timeout=10,
+    )
+
+    print("🟡 FETCH FIXED:", r.status_code, r.text)
+
+    r.raise_for_status()
+
+    return r.json()
+
 def insert_fixed_expense(payload: dict):
 
     url = SUPABASE_URL + "/rest/v1/fixed_expenses"
