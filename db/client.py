@@ -12,6 +12,51 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
+def insert_expense(payload):
+
+    url = SUPABASE_URL + "/rest/v1/expenses"
+
+    r = requests.post(
+        url,
+        json=payload,
+        headers=HEADERS,
+        timeout=10,
+    )
+
+    print("🟡 EXPENSE INSERT:", r.status_code, r.text)
+
+    r.raise_for_status()
+
+async def expense_payment_chosen(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    method = "company" if query.data == "EXP_PAY_COMPANY" else "cash"
+
+    exp = context.user_data["expense"]
+
+    payload = {
+        "amount": exp["amount"],
+        "date": exp["date"],
+        "category": exp["category"],
+        "payment_method": method,
+    }
+
+    insert_expense(payload)
+
+    await query.edit_message_text("✅ Расход сохранён.")
+
+    await query.message.reply_text(
+        "Главное меню:",
+        reply_markup=start_keyboard(update.effective_user),
+    )
+
+    context.user_data.pop("expense", None)
+
+    return FlowState.MENU
+
+
 # ======================================================
 # Bookings DB API
 # ======================================================
