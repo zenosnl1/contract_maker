@@ -386,15 +386,16 @@ async def expenses_last30_list(update, context):
 
         dt = r["expense_date"]
 
-        cat = r["category"]
-
-        pay = "💵 Наличные" if r["payment_method"] == "cash" else "🏢 С фирмы"
-
+        cat_key = r["category"]
+        cat_label = EXPENSE_CATEGORY.get(cat_key, cat_key)
+        
+        pay = "Наличные" if r["payment_method"] == "cash" else "С фирмы"
+        
         lines.append(
-            f"📅 *Дата:* {dt}\n"
-            f"🏷 *Категория:* {cat}\n"
-            f"💶 *Сумма:* {float(r['amount']):.2f} €\n"
-            f"💳 *Оплата:* {pay}\n"
+            f"Дата: {dt}\n"
+            f"{cat_label}\n"
+            f"Сумма: {float(r['amount']):.2f} €\n"
+            f"Оплата: {pay}\n"
         )
 
     lines.append("━━━━━━━━━━━━")
@@ -2577,6 +2578,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
