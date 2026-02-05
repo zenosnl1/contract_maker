@@ -78,6 +78,9 @@ class FlowState(IntEnum):
 
     FIXED_EXPENSE_LIST = auto()
     FIXED_EXPENSE_EDIT_SELECT = auto()
+    FIXED_EXPENSE_CREATE_NAME = auto()
+    FIXED_EXPENSE_CREATE_QTY = auto()
+    FIXED_EXPENSE_CREATE_PRICE = auto()
 
 FIELDS = [
     "FLAT_NUMBER",
