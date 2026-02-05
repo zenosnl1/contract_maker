@@ -179,7 +179,6 @@ async def back_to_fixed_menu(update, context):
 
     return await show_fixed_expenses_menu(update, context)
 
-
 async def fixed_expenses_menu_callback(update, context):
 
     query = update.callback_query
@@ -351,12 +350,55 @@ async def expenses_menu_callback(update, context):
         "💸 Расходы\n\nВыберите действие:",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("➕ Учесть расход", callback_data="EXPENSE_ADD")],
+            [InlineKeyboardButton("📆 Расходы за 30 дней", callback_data="EXPENSE_LAST30")],
             [InlineKeyboardButton("📅 Постоянные расходы", callback_data="EXPENSE_FIXED")],
             [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_MENU")],
         ])
     )
 
     return FlowState.EXPENSES_MENU
+
+async def expenses_last30_list(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    rows = fetch_expenses_last_30_days()
+
+    if not rows:
+        await query.edit_message_text(
+            "📭 За последние 30 дней расходов нет.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Назад", callback_data="MENU_EXPENSES")],
+            ])
+        )
+        return FlowState.EXPENSES_MENU
+
+    lines = ["📆 Расходы за последние 30 дней:\n"]
+
+    total = 0.0
+
+    for r in rows:
+
+        total += float(r["amount"])
+
+        lines.append(
+            f"📅 {r['date']} — {r['category']}\n"
+            f"💶 {float(r['amount']):.2f} € ({r['payment_method']})\n"
+        )
+
+    lines.append("━━━━━━━━━━━━")
+    lines.append(f"💸 Всего: {total:.2f} €")
+
+    await query.edit_message_text(
+        "\n".join(lines),
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("⬅️ Назад", callback_data="MENU_EXPENSES")],
+        ])
+    )
+
+    return FlowState.EXPENSES_MENU
+
 
 async def expense_payment_chosen(update, context):
 
@@ -2457,6 +2499,7 @@ def main():
             ],
             FlowState.EXPENSES_MENU: [
                 CallbackQueryHandler(expense_add_start, pattern="^EXPENSE_ADD$"),
+                CallbackQueryHandler(expenses_last30_list, pattern="^EXPENSE_LAST30$"),
                 CallbackQueryHandler(fixed_expenses_menu_callback, pattern="^EXPENSE_FIXED$"),
                 CallbackQueryHandler(back_to_menu_callback, pattern="^BACK_TO_MENU$"),
             ],
@@ -2521,6 +2564,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
