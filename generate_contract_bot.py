@@ -308,7 +308,8 @@ async def fixed_expense_edit_select(update, context):
         await update.message.reply_text("❌ Расход не найден.")
         return FlowState.FIXED_EXPENSE_EDIT_SELECT
 
-    context.user_data["fixed_expense"] = dict(row)
+    context.user_data["fixed_mode"] = "edit"
+    context.user_data["fixed_expense"] = dict(row)  # содержит id
 
     await update.message.reply_text(
         f"Редактирование:\n\n"
@@ -364,6 +365,7 @@ async def fixed_expense_create_start(update, context):
     query = update.callback_query
     await query.answer()
 
+    context.user_data["fixed_mode"] = "create"
     context.user_data["fixed_expense"] = {}
 
     await query.edit_message_text("Введите название предмета:")
@@ -414,12 +416,21 @@ async def fixed_expense_price_enter(update, context):
 
     from db.client import insert_fixed_expense
 
-    insert_fixed_expense({
+    payload = {
         "item_name": fe["item_name"],
         "quantity": fe["quantity"],
         "unit_price": fe["unit_price"],
         "total_price": total,
-    })
+    }
+    
+    mode = context.user_data.get("fixed_mode")
+    
+    if mode == "edit":
+        update_fixed_expense(fe["id"], payload)
+        await update.message.reply_text("✏️ Регулярный расход обновлён.")
+    else:
+        insert_fixed_expense(payload)
+        await update.message.reply_text("✅ Регулярный расход сохранён.")
 
     await update.message.reply_text(
         "✅ Регулярный расход сохранён:\n\n"
@@ -430,6 +441,7 @@ async def fixed_expense_price_enter(update, context):
     )
 
     context.user_data.pop("fixed_expense", None)
+    context.user_data.pop("fixed_mode", None)
 
     return await show_fixed_expenses_menu(update, context)
 
@@ -2694,6 +2706,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
