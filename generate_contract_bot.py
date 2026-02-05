@@ -20,7 +20,8 @@ from db.client import (
     close_contract_full,
     insert_booking,
     fetch_active_bookings,
-    insert_fixed_expenses,
+    insert_expense,
+    insert_fixed_expense,
 )
 from telegram.ext import ApplicationBuilder
 from telegram import Update
@@ -2452,6 +2453,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
