@@ -142,14 +142,14 @@ def start_keyboard(user):
             [InlineKeyboardButton("📥 Импорт договора", callback_data="MENU_IMPORT")],
             [InlineKeyboardButton("✏️ Управление договором", callback_data="MENU_EDIT")],
             [InlineKeyboardButton("🚨 Нарушения", callback_data="MENU_VIOLATIONS_MENU")],
+            [InlineKeyboardButton("📌 Брони", callback_data="MENU_BOOKINGS")],
             [InlineKeyboardButton("💸 Расходы", callback_data="MENU_EXPENSES")],
         ]
 
     # --- admin + viewer ---
     if role in ("admin", "viewer"):
         buttons += [
-            [InlineKeyboardButton("📌 Брони", callback_data="MENU_BOOKINGS")],
-            [InlineKeyboardButton("📊 Статистика", callback_data="MENU_STATS_MENU")],
+            [InlineKeyboardButton("📊 Отчёты", callback_data="MENU_STATS_MENU")],
             [InlineKeyboardButton("👥 Текущие жильцы", callback_data="MENU_ACTIVE")],
         ]
 
@@ -1569,7 +1569,7 @@ async def stats_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.edit_message_text(
         "Выберите тип отчёта:",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("📊 Общая статистика", callback_data="STATS_GENERAL")],
+            [InlineKeyboardButton("📊 Общий отчет", callback_data="STATS_GENERAL")],
             [InlineKeyboardButton("💰 Финансовый отчёт", callback_data="STATS_FINANCE")],
         ])
     )
@@ -2780,6 +2780,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
