@@ -14,6 +14,49 @@ YES_NO = {
     },
 }
 
+CHECKOUT_TRANSLATIONS = {
+
+    "lv": {
+
+        "early_checkout_yes": "Jā",
+        "early_checkout_no": "Nē",
+
+        "initiator_tenant": "Īrnieks",
+        "initiator_landlord": "Iznomātājs",
+
+        "no_reason": "—",
+
+        "violations_none": "Pārkāpumi netika konstatēti",
+
+        "violation_types": {
+            "smoking": "Smēķēšana telpās",
+            "noise": "Trokšņošana",
+            "damage": "Īpašuma bojājumi",
+            "dirty": "Netīrība",
+        },
+    },
+
+    "ru": {
+
+        "early_checkout_yes": "Да",
+        "early_checkout_no": "Нет",
+
+        "initiator_tenant": "Клиент",
+        "initiator_landlord": "Арендодатель",
+
+        "no_reason": "—",
+
+        "violations_none": "Нарушений не зафиксировано",
+
+        "violation_types": {
+            "smoking": "Курение в помещении",
+            "noise": "Шум",
+            "damage": "Повреждения",
+            "dirty": "Грязь",
+        },
+    },
+}
+
 
 EARLY_INITIATOR = {
     "ru": {
