@@ -87,7 +87,6 @@ def build_stats_excel(rows):
         "price_per_day",
         "total_price",
         "deposit",
-        "returned_deposit",
     
         "payment_method",
         "invoice_issued",
@@ -137,8 +136,6 @@ def build_stats_excel(rows):
         "total_price": "Общая сумма",
 
         "deposit": "Депозит",
-        "returned_deposit": "Возвращено",
-        "deposit_comment": "Комментарий",
 
         "payment_method": "Способ оплаты",
         "invoice_issued": "Счёт выставлен",
