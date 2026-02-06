@@ -524,12 +524,13 @@ async def expenses_month_pick(update, context):
             )
         ])
 
+    buttons.append([
+        InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_EXPENSES"),
+    ])
+    
     await query.edit_message_text(
         "📅 Выберите месяц:",
         reply_markup=InlineKeyboardMarkup(buttons),
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_EXPENSES")],
-        ]),
     )
 
     return FlowState.EXPENSE_MONTH_PICK
@@ -2928,6 +2929,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
