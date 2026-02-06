@@ -8,6 +8,7 @@ from core.constants import CONTRACT_TEMPLATE, ACT_TEMPLATE, CHECKOUT_ACT_TEMPLAT
 from core.checkout_act import build_checkout_act
 from reports.excel import build_stats_excel
 from reports.finance import build_finance_report
+from reports.expenses import build_expenses_report
 from db.client import (
     fetch_all_contracts,
     fetch_active_contracts,
@@ -183,6 +184,28 @@ async def back_to_fixed_menu(update, context):
     await query.answer()
 
     return await show_fixed_expenses_menu(update, context)
+
+async def stats_expenses_callback(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    rows = fetch_all_expenses()
+
+    await query.edit_message_text("📊 Формирую отчёт по расходам...")
+
+    path = build_expenses_report(rows)
+
+    with open(path, "rb") as f:
+        await query.message.reply_document(f)
+
+    await query.message.reply_text(
+        "Главное меню:",
+        reply_markup=start_keyboard(update.effective_user),
+    )
+
+    return FlowState.MENU
+
 
 async def fixed_expenses_menu_callback(update, context):
 
@@ -1687,6 +1710,7 @@ async def stats_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("📊 Общий отчет", callback_data="STATS_GENERAL")],
             [InlineKeyboardButton("💰 Финансовый отчёт", callback_data="STATS_FINANCE")],
+            [InlineKeyboardButton("💸 Отчёт по расходам", callback_data="STATS_EXPENSES")],
         ])
     )
 
@@ -2680,6 +2704,7 @@ def main():
                 CallbackQueryHandler(bookings_menu_callback, pattern="^MENU_BOOKINGS$"),
                 CallbackQueryHandler(booking_list_callback, pattern="^BOOKING_LIST$"),
                 CallbackQueryHandler(expenses_menu_callback, pattern="^MENU_EXPENSES$"),
+                CallbackQueryHandler(stats_expenses_callback, pattern="^STATS_EXPENSES$"),
                 CallbackQueryHandler(violations_menu_callback, pattern="^MENU_VIOLATIONS_MENU$"),
                 CallbackQueryHandler(violation_start_callback, pattern="^VIOL_ADD$"),
                 CallbackQueryHandler(violation_delete_start, pattern="^VIOL_DELETE$"),
@@ -2900,6 +2925,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
