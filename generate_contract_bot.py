@@ -611,9 +611,11 @@ async def expense_payment_chosen(update, context):
 
     insert_expense(payload)
 
-    await query.edit_message_text("✅ Расход сохранён.")
+    msg = update.callback_query.message
 
-    await query.message.reply_text(
+    await msg.reply_text("✅ Расход сохранён.")
+    
+    await msg.reply_text(
         "Главное меню:",
         reply_markup=start_keyboard(update.effective_user),
     )
@@ -2773,6 +2775,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
