@@ -35,6 +35,7 @@ def build_checkout_act(
     penalties_total = sum(v["amount"] for v in violations)
 
     values = {
+        "CONTRACT_CODE": contract.get("contract_code") or "",
         "FLAT_NUMBER": contract["flat_number"],
         "CLIENT_NAME": contract["client_name"],
         "CLIENT_ID": contract["client_id"] or "",
