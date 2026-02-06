@@ -490,7 +490,7 @@ async def expenses_menu_callback(update, context):
             [InlineKeyboardButton("➕ Учесть расход", callback_data="EXPENSE_ADD")],
             [InlineKeyboardButton("📆 Расходы за последние 30 дней", callback_data="EXPENSE_LAST30")],
             [InlineKeyboardButton("🧾 Расходы за месяц", callback_data="EXPENSE_MONTH")],
-            [InlineKeyboardButton("⏳ Постоянные расходы", callback_data="EXPENSE_FIXED")],
+            [InlineKeyboardButton("⏳ Регулярные расходы", callback_data="EXPENSE_FIXED")],
             [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_MENU")],
         ])
     )
@@ -527,6 +527,9 @@ async def expenses_month_pick(update, context):
     await query.edit_message_text(
         "📅 Выберите месяц:",
         reply_markup=InlineKeyboardMarkup(buttons),
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_EXPENSES")],
+        ]),
     )
 
     return FlowState.EXPENSE_MONTH_PICK
@@ -2925,6 +2928,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
