@@ -103,6 +103,7 @@ def build_stats_excel(rows):
         "refund_unused_amount",
         "final_refund_amount",
         "extra_due_amount",
+        "penalties",
     ]
 
 
@@ -157,6 +158,7 @@ def build_stats_excel(rows):
         "refund_unused_amount": "Возврат за непрожитые ночи",
         "final_refund_amount": "Итоговый возврат",
         "extra_due_amount": "Доплата клиента",
+        "penalties": "Штрафы (€)",
 
     }
 
