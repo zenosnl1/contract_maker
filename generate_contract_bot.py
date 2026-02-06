@@ -605,11 +605,10 @@ async def expense_payment_chosen(update, context):
     payload = {
         "expense_date": exp["date"],
         "amount": exp["amount"],
-        "category": exp["category"],
+        "description": exp.get("description"),
         "payment_method": method,
     }
 
-    from db.client import insert_expense
     insert_expense(payload)
 
     await query.edit_message_text("✅ Расход сохранён.")
@@ -672,7 +671,13 @@ async def expense_date_today(update, context):
 
     context.user_data["expense"]["date"] = date.today().isoformat()
 
-    return await ask_expense_category(update, context)
+    msg = update.message or update.callback_query.message
+
+    await msg.reply_text(
+        "🧾 Что было куплено? (можно написать несколько позиций)"
+    )
+    
+    return FlowState.EXPENSE_DESCRIPTION
 
 async def expense_date_manual_start(update, context):
 
@@ -695,37 +700,26 @@ async def expense_date_manual_enter(update, context):
 
     context.user_data["expense"]["date"] = d.isoformat()
 
-    return await ask_expense_category(update, context)
-
-def expense_category_keyboard():
-
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton(v, callback_data=f"EXP_CAT:{k}")]
-        for k, v in EXPENSE_CATEGORIES.items()
-    ])
-
-async def ask_expense_category(update, context):
-
     msg = update.message or update.callback_query.message
 
     await msg.reply_text(
-        "Выберите категорию расхода:",
-        reply_markup=expense_category_keyboard(),
+        "🧾 Что было куплено? (можно написать несколько позиций)"
     )
+    
+    return FlowState.EXPENSE_DESCRIPTION
 
-    return FlowState.EXPENSE_CATEGORY
+async def expense_description_enter(update, context):
 
-async def expense_category_chosen(update, context):
+    txt = update.message.text.strip()
 
-    query = update.callback_query
-    await query.answer()
+    if len(txt) < 3:
+        await update.message.reply_text("Опишите покупку текстом.")
+        return FlowState.EXPENSE_DESCRIPTION
 
-    key = query.data.split(":")[1]
+    context.user_data["expense"]["description"] = txt
 
-    context.user_data["expense"]["category"] = key
-
-    await query.edit_message_text(
-        "Как оплачен расход?",
+    await update.message.reply_text(
+        "Как был оплачен расход?",
         reply_markup=InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("🏢 С фирмы", callback_data="EXP_PAY_COMPANY"),
@@ -2721,10 +2715,9 @@ def main():
                 MessageHandler(filters.TEXT & ~filters.COMMAND, expense_date_manual_enter),
             ],
             
-            FlowState.EXPENSE_CATEGORY: [
-                CallbackQueryHandler(expense_category_chosen, pattern="^EXP_CAT:"),
+            FlowState.EXPENSE_DESCRIPTION: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, expense_description_enter),
             ],
-            
             FlowState.EXPENSE_PAYMENT_METHOD: [
                 CallbackQueryHandler(expense_payment_chosen, pattern="^EXP_PAY_"),
             ],
@@ -2780,6 +2773,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
