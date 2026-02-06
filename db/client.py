@@ -96,6 +96,32 @@ def fetch_fixed_expenses():
 
     return r.json()
 
+def fetch_contract_violations_for_period(
+    contract_code: str,
+    start_date: str,
+    actual_end_date: str,
+):
+
+    url = (
+        SUPABASE_URL
+        + "/rest/v1/violations"
+        + "?contract_code=eq."
+        + contract_code
+        + "&created_at=gte."
+        + start_date
+        + "&created_at=lte."
+        + actual_end_date
+    )
+
+    r = requests.get(url, headers=HEADERS, timeout=10)
+
+    print("🟡 FETCH PERIOD VIOLATIONS:", r.status_code, r.text)
+
+    r.raise_for_status()
+
+    return r.json()
+
+
 def fetch_expenses_last_30_days():
 
     since = (date.today() - timedelta(days=30)).isoformat()
