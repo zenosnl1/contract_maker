@@ -121,6 +121,37 @@ def fetch_contract_violations_for_period(
 
     return r.json()
 
+def fetch_penalties_by_contract_codes(codes: list[str]):
+
+    if not codes:
+        return {}
+
+    # eq.(a,b,c)
+    in_clause = ",".join(codes)
+
+    url = (
+        SUPABASE_URL
+        + "/rest/v1/violations"
+        + "?contract_code=in.("
+        + in_clause
+        + ")"
+    )
+
+    r = requests.get(url, headers=HEADERS, timeout=10)
+
+    r.raise_for_status()
+
+    rows = r.json()
+
+    penalties = {}
+
+    for v in rows:
+        penalties.setdefault(v["contract_code"], 0)
+        penalties[v["contract_code"]] += int(v["amount"])
+
+    return penalties
+
+
 
 def fetch_expenses_last_30_days():
 
