@@ -27,6 +27,29 @@ def insert_expense(payload):
 
     r.raise_for_status()
 
+def fetch_expenses_by_month(year: str, month: str):
+
+    start = f"{year}-{month}-01"
+
+    if month == "12":
+        end = f"{int(year)+1}-01-01"
+    else:
+        end = f"{year}-{int(month)+1:02}-01"
+
+    url = (
+        SUPABASE_URL
+        + "/rest/v1/expenses"
+        + f"?expense_date=gte.{start}&expense_date=lt.{end}"
+        + "&order=expense_date.asc"
+    )
+
+    r = requests.get(url, headers=HEADERS, timeout=10)
+
+    r.raise_for_status()
+
+    return r.json()
+
+
 def fetch_fixed_expense_by_id(fid):
 
     url = SUPABASE_URL + f"/rest/v1/fixed_expenses?id=eq.{fid}"
