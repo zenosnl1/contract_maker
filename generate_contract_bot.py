@@ -556,27 +556,26 @@ async def expenses_last30_list(update, context):
     for r in rows:
 
         total += float(r["amount"])
-
+    
         raw_date = r["expense_date"]
-
+    
         try:
             dt_obj = datetime.fromisoformat(raw_date)
             dt = dt_obj.strftime("%d.%m.%Y")
         except Exception:
             dt = raw_date
-
-
-        cat_key = r["category"]
-        cat_label = EXPENSE_CATEGORIES.get(cat_key, cat_key)
-
+    
         pay = "Наличные" if r["payment_method"] == "cash" else "С фирмы"
-
+    
+        desc = r.get("description") or r.get("comment") or "—"
+    
         lines.append(
             f"📅 {dt}\n"
-            f"{cat_label}\n"
+            f"🛒 {desc}\n"
             f"💶 {float(r['amount']):.2f} €\n"
             f"💳 {pay}\n"
         )
+
 
     lines.append("━━━━━━━━━━━━")
     lines.append(f"💸 Итого за 30 дней: {total:.2f} €")
@@ -2778,6 +2777,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
