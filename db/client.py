@@ -112,6 +112,17 @@ def fetch_expenses_last_30_days():
 
     return r.json()
 
+def fetch_all_expenses():
+
+    url = SUPABASE_URL + "/rest/v1/expenses?order=expense_date.asc"
+
+    r = requests.get(url, headers=HEADERS, timeout=10)
+
+    r.raise_for_status()
+
+    return r.json()
+
+
 
 def insert_fixed_expense(payload: dict):
 
