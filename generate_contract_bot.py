@@ -30,6 +30,7 @@ from db.client import (
     update_fixed_expense,
     fetch_expenses_by_month,
     fetch_contract_violations_for_period,
+    fetch_penalties_by_contract_codes,
 )
 from telegram.ext import ApplicationBuilder
 from telegram import Update
@@ -2955,6 +2956,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
