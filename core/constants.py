@@ -67,7 +67,7 @@ class FlowState(IntEnum):
     EXPENSE_ENTER_AMOUNT = auto()
     EXPENSE_DATE_CHOICE = auto()
     EXPENSE_DATE_MANUAL = auto()
-    EXPENSE_CATEGORY = auto()
+    EXPENSE_DESCRIPTION = auto()
     EXPENSE_PAYMENT_METHOD = auto()
 
     FIXED_EXPENSE_MENU = auto()
