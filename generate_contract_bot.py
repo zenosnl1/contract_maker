@@ -27,6 +27,7 @@ from db.client import (
     fetch_fixed_expense_by_id,
     delete_fixed_expense,
     update_fixed_expense,
+    fetch_expenses_by_month,
 )
 from telegram.ext import ApplicationBuilder
 from telegram import Update
@@ -464,13 +465,114 @@ async def expenses_menu_callback(update, context):
         "💸 Расходы\n\nВыберите действие:",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("➕ Учесть расход", callback_data="EXPENSE_ADD")],
-            [InlineKeyboardButton("📆 Расходы за 30 дней", callback_data="EXPENSE_LAST30")],
+            [InlineKeyboardButton("📆 Расходы за последние 30 дней", callback_data="EXPENSE_LAST30")],
+            [InlineKeyboardButton("🧾 Расходы за месяц", callback_data="EXPENSE_MONTH")],
             [InlineKeyboardButton("⏳ Постоянные расходы", callback_data="EXPENSE_FIXED")],
             [InlineKeyboardButton("⬅️ Назад", callback_data="BACK_TO_MENU")],
         ])
     )
 
     return FlowState.EXPENSES_MENU
+
+async def expenses_month_pick(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    today = date.today()
+
+    buttons = []
+
+    for i in range(12):
+        y = today.year
+        m = today.month - i
+
+        while m <= 0:
+            m += 12
+            y -= 1
+
+        label = f"{m:02}.{y}"
+        key = f"{y}-{m:02}"
+
+        buttons.append([
+            InlineKeyboardButton(
+                label,
+                callback_data=f"EXPENSE_MONTH_SHOW:{key}",
+            )
+        ])
+
+    await query.edit_message_text(
+        "📅 Выберите месяц:",
+        reply_markup=InlineKeyboardMarkup(buttons),
+    )
+
+    return FlowState.EXPENSE_MONTH_PICK
+
+async def expenses_month_show(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    ym = query.data.split(":")[1]  # YYYY-MM
+
+    year, month = ym.split("-")
+
+    rows = fetch_expenses_by_month(year, month)
+
+    if not rows:
+        await query.edit_message_text(
+            f"📭 За {month}.{year} расходов нет.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Назад", callback_data="EXPENSE_MONTH")],
+            ]),
+        )
+        return FlowState.EXPENSE_MONTH_PICK
+
+    rows = sorted(rows, key=lambda r: r["expense_date"])
+
+    lines = [f"📅 Расходы за {month}.{year}\n"]
+
+    total = 0.0
+    total_cash = 0.0
+    total_company = 0.0
+
+    for r in rows:
+
+        amount = float(r["amount"])
+        total += amount
+
+        if r["payment_method"] == "cash":
+            total_cash += amount
+        else:
+            total_company += amount
+
+        dt = datetime.fromisoformat(r["expense_date"]).strftime("%d.%m.%Y")
+
+        pay = "Наличные" if r["payment_method"] == "cash" else "С фирмы"
+
+        desc = r.get("description") or r.get("comment") or "—"
+
+        lines.append(
+            f"📅 {dt}\n"
+            f"🛒 {desc}\n"
+            f"💶 {amount:.2f} €\n"
+            f"💳 {pay}\n"
+        )
+
+    lines.append("━━━━━━━━━━━━")
+    lines.append(f"💸 Итого: {total:.2f} €")
+    lines.append(f"🏢 С фирмы: {total_company:.2f} €")
+    lines.append(f"💵 Наличными: {total_cash:.2f} €")
+
+    await query.edit_message_text(
+        "\n".join(lines),
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("⬅️ Назад", callback_data="EXPENSE_MONTH")],
+        ]),
+    )
+
+    return FlowState.EXPENSE_MONTH_PICK
+
 
 async def fixed_expense_delete_enter(update, context):
 
@@ -540,6 +642,11 @@ async def expenses_last30_list(update, context):
 
     rows = fetch_expenses_last_30_days()
 
+    rows = sorted(
+        rows,
+        key=lambda r: r["expense_date"],
+    )
+
     if not rows:
         await query.edit_message_text(
             "📭 За последние 30 дней расходов не найдено.",
@@ -552,10 +659,19 @@ async def expenses_last30_list(update, context):
     lines = ["📆 Расходы за последние 30 дней\n"]
 
     total = 0.0
+    total_cash = 0.0
+    total_company = 0.0
 
     for r in rows:
 
-        total += float(r["amount"])
+        amount = float(r["amount"])
+
+        total += amount
+        
+        if r["payment_method"] == "cash":
+            total_cash += amount
+        else:
+            total_company += amount
     
         raw_date = r["expense_date"]
     
@@ -579,6 +695,8 @@ async def expenses_last30_list(update, context):
 
     lines.append("━━━━━━━━━━━━")
     lines.append(f"💸 Итого за 30 дней: {total:.2f} €")
+    lines.append(f"🏢 С фирмы: {total_company:.2f} €")
+    lines.append(f"💵 Наличными: {total_cash:.2f} €")
 
     await query.edit_message_text(
         "\n".join(lines),
@@ -2704,6 +2822,7 @@ def main():
                 CallbackQueryHandler(expense_add_start, pattern="^EXPENSE_ADD$"),
                 CallbackQueryHandler(back_to_expenses_menu, pattern="^BACK_TO_EXPENSES$"),
                 CallbackQueryHandler(expenses_last30_list, pattern="^EXPENSE_LAST30$"),
+                CallbackQueryHandler(expenses_month_pick, pattern="^EXPENSE_MONTH$"),
                 CallbackQueryHandler(fixed_expenses_menu_callback, pattern="^EXPENSE_FIXED$"),
                 CallbackQueryHandler(back_to_menu_callback, pattern="^BACK_TO_MENU$"),
             ],
@@ -2755,6 +2874,10 @@ def main():
                 CallbackQueryHandler(fixed_expense_delete_confirm, pattern="^FIXED_DELETE_CONFIRM$"),
                 CallbackQueryHandler(back_to_fixed, pattern="^BACK_TO_FIXED$"),
             ],
+            FlowState.EXPENSE_MONTH_PICK: [
+                CallbackQueryHandler(expenses_month_pick, pattern="^EXPENSE_MONTH$"),
+                CallbackQueryHandler(expenses_month_show, pattern="^EXPENSE_MONTH_SHOW:"),
+            ],
         },
         fallbacks=[CommandHandler("stop", stop)],
         allow_reentry=True,
@@ -2777,6 +2900,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
