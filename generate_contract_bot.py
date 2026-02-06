@@ -2904,6 +2904,7 @@ def main():
                 CallbackQueryHandler(back_to_fixed, pattern="^BACK_TO_FIXED$"),
             ],
             FlowState.EXPENSE_MONTH_PICK: [
+                CallbackQueryHandler(back_to_expenses_menu, pattern="^BACK_TO_EXPENSES$"),
                 CallbackQueryHandler(expenses_month_pick, pattern="^EXPENSE_MONTH$"),
                 CallbackQueryHandler(expenses_month_show, pattern="^EXPENSE_MONTH_SHOW:"),
             ],
@@ -2929,6 +2930,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
