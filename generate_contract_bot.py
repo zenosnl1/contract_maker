@@ -1683,10 +1683,29 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("⚠️ Ошибка получения данных.", reply_markup=None)
         return FlowState.MENU
 
-
     if not rows:
         await query.edit_message_text("Пока нет договоров.", reply_markup=None)
         return FlowState.MENU
+
+    # --------------------------------------
+    # подтягиваем штрафы из violations
+    # --------------------------------------
+
+    codes = [
+        r["contract_code"]
+        for r in rows
+        if r.get("contract_code")
+    ]
+
+    penalties_map = fetch_penalties_by_contract_codes(codes)
+
+    for r in rows:
+        r["penalties"] = penalties_map.get(
+            r.get("contract_code"),
+            0,
+        )
+
+    # --------------------------------------
 
     path = build_stats_excel(rows)
 
@@ -2936,6 +2955,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
