@@ -29,6 +29,7 @@ from db.client import (
     delete_fixed_expense,
     update_fixed_expense,
     fetch_expenses_by_month,
+    fetch_contract_violations_for_period,
 )
 from telegram.ext import ApplicationBuilder
 from telegram import Update
@@ -2597,7 +2598,12 @@ async def finalize_close(update, context):
     )
 
     contract = get_contract_by_code(c["contract_code"])
-    violations = fetch_contract_violations(c["contract_code"])
+    violations = fetch_contract_violations_for_period(
+        contract_code=c["contract_code"],
+        start_date=c["start_date"],
+        actual_end_date=str(context.user_data["actual_end_date"]),
+    )
+
 
     safe_code = c["contract_code"].replace("/", "_")
 
@@ -2930,6 +2936,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
