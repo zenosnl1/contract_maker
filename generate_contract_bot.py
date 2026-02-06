@@ -600,22 +600,25 @@ async def expense_payment_chosen(update, context):
     else:
         method = "cash"
 
-    exp = context.user_data.get("expense", {})
+    exp = context.user_data.get("expense")
+
+    if not exp:
+        await query.edit_message_text("⚠️ Ошибка: нет данных расхода.")
+        return FlowState.MENU
 
     payload = {
         "expense_date": exp["date"],
-        "amount": exp["amount"],
-        "description": exp.get("description"),
+        "amount": round(float(exp["amount"]), 2),
         "payment_method": method,
+        "description": exp.get("description"),
+        "comment": None,
     }
 
     insert_expense(payload)
 
-    msg = update.callback_query.message
+    await query.edit_message_text("✅ Расход сохранён.")
 
-    await msg.reply_text("✅ Расход сохранён.")
-    
-    await msg.reply_text(
+    await query.message.reply_text(
         "Главное меню:",
         reply_markup=start_keyboard(update.effective_user),
     )
@@ -2775,6 +2778,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
