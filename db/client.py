@@ -326,6 +326,7 @@ def save_contract_to_db(data, files):
         data["START_DATE"],
         data["FLAT_NUMBER"],
     )
+    data["CONTRACT_CODE"] = contract_code
 
     payload = {
         "contract_code": contract_code,
