@@ -2208,6 +2208,8 @@ async def save_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=start_keyboard(update.effective_user),
     )
 
+    context.user_data.clear()
+
     return FlowState.MENU
 
 async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2227,6 +2229,8 @@ async def skip_db_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Главное меню:",
         reply_markup=start_keyboard(update.effective_user),
     )
+
+    context.user_data.clear()
 
     return FlowState.MENU
 
@@ -2957,6 +2961,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
