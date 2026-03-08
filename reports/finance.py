@@ -97,12 +97,17 @@ def build_finance_report(rows):
 
         try:
             start = datetime.fromisoformat(r["start_date"]).date()
-            end = datetime.fromisoformat(r["end_date"]).date()
-
+        
+            actual_raw = r.get("actual_checkout_date")
+        
+            if actual_raw:
+                end = datetime.fromisoformat(actual_raw).date()
+            else:
+                end = datetime.fromisoformat(r["end_date"]).date()
+        
             price = int(r["price_per_day"])
             flat = r["flat_number"]
             fixed = float(r.get("fixed_per_booking") or 0)
-
 
         except Exception:
             continue
@@ -185,9 +190,12 @@ def build_finance_report(rows):
         for flat in sorted(grouped[(year, month)]):
 
             b = grouped[(year, month)][flat]
-
-            load = round(b["nights"] / days_in_month * 100, 1)
-
+        
+            # защита от загрузки >100%
+            nights_for_load = min(b["nights"], days_in_month)
+        
+            load = round(nights_for_load / days_in_month * 100, 1)
+        
             profit = round(b["realized"] - b["expenses"], 2)
 
             month_realized += b["realized"]
