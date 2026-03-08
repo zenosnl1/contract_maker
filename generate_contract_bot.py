@@ -1079,17 +1079,34 @@ async def booking_list_callback(update, context):
 
     rows = fetch_active_bookings()
 
-    if not rows:
-        await query.edit_message_text("📭 Активных броней нет.")
+    today = date.today()
+
+    # оставляем только будущие брони (сегодня и позже)
+    filtered = []
+
+    for r in rows:
+
+        try:
+            start = datetime.fromisoformat(r["start_date"]).date()
+        except Exception:
+            continue
+
+        if start >= today:
+            filtered.append(r)
+
+    if not filtered:
+        await query.edit_message_text("📭 Предстоящих броней нет.")
+
         await query.message.reply_text(
             "Главное меню:",
             reply_markup=start_keyboard(update.effective_user),
         )
+
         return FlowState.MENU
 
-    lines = ["📌 Текущие брони:\n"]
+    lines = ["📌 Предстоящие брони:\n"]
 
-    for r in rows:
+    for r in filtered:
 
         start_txt = datetime.fromisoformat(r["start_date"]).strftime("%d.%m.%Y")
 
@@ -1124,7 +1141,6 @@ async def booking_list_callback(update, context):
     )
 
     return FlowState.MENU
-
 
 def replace_everywhere(doc, data):
     for p in doc.paragraphs:
@@ -2953,6 +2969,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
