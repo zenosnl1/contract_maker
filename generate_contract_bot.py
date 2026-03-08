@@ -2622,15 +2622,16 @@ async def finalize_close(update, context):
         manual_refund=context.user_data.get("manual_refund"),
     )
 
+    # 🔥 заново читаем договор из БД
     contract = get_contract_by_code(c["contract_code"])
+
     violations = fetch_contract_violations_for_period(
-        contract_code=c["contract_code"],
-        start_date=c["start_date"],
-        actual_end_date=str(context.user_data["actual_end_date"]),
+        contract_code=contract["contract_code"],
+        start_date=contract["start_date"],
+        actual_end_date=contract["actual_checkout_date"],
     )
 
-
-    safe_code = c["contract_code"].replace("/", "_")
+    safe_code = contract["contract_code"].replace("/", "_")
 
     path = build_checkout_act(
         template_path=CHECKOUT_ACT_TEMPLATE,
@@ -2652,7 +2653,7 @@ async def finalize_close(update, context):
     context.user_data.clear()
 
     return FlowState.MENU
-
+    
 def format_contract_view(c: dict) -> str:
 
     def v(x):
@@ -2961,6 +2962,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
