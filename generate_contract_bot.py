@@ -288,28 +288,6 @@ async def fixed_expense_delete_start(update, context):
 
     return FlowState.FIXED_EXPENSE_DELETE_SELECT
 
-async def fixed_expense_delete_enter(update, context):
-
-    txt = update.message.text.strip()
-
-    if not txt.isdigit():
-        await update.message.reply_text("Введите числовой ID.")
-        return FlowState.FIXED_EXPENSE_DELETE_SELECT
-
-    fid = int(txt)
-
-    row = fetch_fixed_expense_by_id(fid)
-
-    if not row:
-        await update.message.reply_text("❌ Расход с таким ID не найден.")
-        return FlowState.FIXED_EXPENSE_DELETE_SELECT
-
-    delete_fixed_expense(fid)
-
-    await update.message.reply_text("🗑 Регулярный расход удалён.")
-
-    return await show_fixed_expenses_menu(update, context)
-
 async def fixed_expense_edit_select(update, context):
 
     txt = update.message.text.strip()
@@ -417,18 +395,18 @@ async def fixed_expense_qty_enter(update, context):
 async def fixed_expense_price_enter(update, context):
 
     txt = update.message.text.strip()
-    
+
     price = parse_price(txt)
-    
+
     if price is None:
         await update.message.reply_text(
             "Введите цену, например: 12,5 или 12.50"
         )
         return FlowState.FIXED_EXPENSE_CREATE_PRICE
-    
-    unit_price = price
 
     fe = context.user_data["fixed_expense"]
+
+    unit_price = price
     fe["unit_price"] = unit_price
 
     total = round(fe["quantity"] * unit_price, 3)
@@ -437,21 +415,21 @@ async def fixed_expense_price_enter(update, context):
     payload = {
         "item_name": fe["item_name"],
         "quantity": fe["quantity"],
-        "unit_price": fe["unit_price"],
+        "unit_price": unit_price,
         "total_price": total,
     }
-    
+
     mode = context.user_data.get("fixed_mode")
-    
+
     if mode == "edit":
         update_fixed_expense(fe["id"], payload)
-        await update.message.reply_text("✏️ Регулярный расход обновлён.")
+        msg = "✏️ Регулярный расход обновлён."
     else:
         insert_fixed_expense(payload)
-        await update.message.reply_text("✅ Регулярный расход сохранён.")
+        msg = "✅ Регулярный расход сохранён."
 
     await update.message.reply_text(
-        "✅ Регулярный расход сохранён:\n\n"
+        f"{msg}\n\n"
         f"📦 {fe['item_name']}\n"
         f"🔢 Кол-во: {fe['quantity']}\n"
         f"💶 Цена: {fe['unit_price']} €\n"
@@ -462,7 +440,6 @@ async def fixed_expense_price_enter(update, context):
     context.user_data.pop("fixed_mode", None)
 
     return await show_fixed_expenses_menu(update, context)
-
 
 async def fixed_expense_edit_start(update, context):
 
@@ -674,7 +651,7 @@ async def expenses_last30_list(update, context):
 
     rows = sorted(
         rows,
-        key=lambda r: r["expense_date"],
+        key=lambda r: r.get("expense_date") or ""
     )
 
     if not rows:
@@ -697,31 +674,30 @@ async def expenses_last30_list(update, context):
         amount = float(r["amount"])
 
         total += amount
-        
+
         if r["payment_method"] == "cash":
             total_cash += amount
         else:
             total_company += amount
-    
-        raw_date = r["expense_date"]
-    
+
+        raw_date = r.get("expense_date")
+
         try:
             dt_obj = datetime.fromisoformat(raw_date)
             dt = dt_obj.strftime("%d.%m.%Y")
         except Exception:
             dt = raw_date
-    
+
         pay = "Наличные" if r["payment_method"] == "cash" else "С фирмы"
-    
+
         desc = r.get("description") or r.get("comment") or "—"
-    
+
         lines.append(
             f"📅 {dt}\n"
             f"🛒 {desc}\n"
-            f"💶 {float(r['amount']):.2f} €\n"
+            f"💶 {amount:.2f} €\n"
             f"💳 {pay}\n"
         )
-
 
     lines.append("━━━━━━━━━━━━")
     lines.append(f"💸 Итого за 30 дней: {total:.2f} €")
@@ -964,11 +940,16 @@ async def booking_price_enter(update, context):
 
     txt = update.message.text.strip()
 
-    if not txt.isdigit():
-        await update.message.reply_text("Введите сумму цифрами.")
+    price = parse_price(txt)
+
+    if price is None:
+        await update.message.reply_text(
+            "Введите цену, например:\n"
+            "25\n25.5\n25,5"
+        )
         return FlowState.BOOKING_CREATE_PRICE
 
-    context.user_data["booking"]["price_per_day"] = int(txt)
+    context.user_data["booking"]["price_per_day"] = price
 
     await update.message.reply_text(
         "📅 Выберите дату заезда:",
@@ -976,7 +957,6 @@ async def booking_price_enter(update, context):
     )
 
     return FlowState.BOOKING_CREATE_START
-
 
 async def booking_date_callback(update, context):
 
@@ -1552,7 +1532,9 @@ async def violation_delete_item(update, context):
 
 
 def generate_docs(data):
+
     safe = data["CLIENT_NAME"].replace(" ", "_")
+    code = data.get("CONTRACT_CODE", "")
 
     outputs = []
 
@@ -1564,7 +1546,8 @@ def generate_docs(data):
         replace_everywhere(doc, data)
         add_page_numbers(doc)
 
-        fname = f"{prefix}_{safe}.docx"
+        fname = f"{prefix}_{safe}_{code}.docx"
+
         doc.save(fname)
         outputs.append(fname)
 
@@ -1932,8 +1915,16 @@ async def skip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    step = context.user_data.get("step")
+
+    if step is None:
+        await update.message.reply_text(
+            "Используйте меню бота."
+        )
+        return FlowState.MENU
+
     mode = context.user_data.get("mode", "normal")
-    step = context.user_data["step"]
+
     field = FIELDS[step]
 
     text = update.message.text.strip()
@@ -2608,12 +2599,12 @@ async def require_admin(update):
 async def finalize_close(update, context):
 
     c = context.user_data["edit_contract"]
-    
+
     if c.get("is_closed"):
         await update.message.reply_text("⚠️ Договор уже закрыт.")
         return FlowState.MENU
 
-    result = close_contract_full(
+    close_contract_full(
         contract_code=c["contract_code"],
         actual_checkout_date=context.user_data["actual_end_date"],
         early_checkout=context.user_data.get("early_checkout"),
@@ -2622,7 +2613,7 @@ async def finalize_close(update, context):
         manual_refund=context.user_data.get("manual_refund"),
     )
 
-    # 🔥 заново читаем договор из БД
+    # читаем актуальный договор из БД
     contract = get_contract_by_code(c["contract_code"])
 
     violations = fetch_contract_violations_for_period(
@@ -2962,6 +2953,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
