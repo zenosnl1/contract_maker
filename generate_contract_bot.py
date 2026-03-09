@@ -58,11 +58,6 @@ TOKEN = os.environ["BOT_TOKEN"]
 
 async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # --- booking mode ---
-    if context.user_data.get("booking") is not None:
-        return await booking_date_callback(update, context)
-
-    # --- contract/import mode ---
     query = update.callback_query
     await query.answer()
 
@@ -70,6 +65,7 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     d = datetime.fromisoformat(iso)
 
     step = context.user_data["step"]
+
     if step >= len(FIELDS):
         return FlowState.FILLING
 
@@ -100,8 +96,6 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(QUESTIONS[next_field])
     return FlowState.FILLING
-
-
 
 def payment_method_keyboard():
     return InlineKeyboardMarkup([
@@ -2886,11 +2880,11 @@ def main():
             ],
             
             FlowState.BOOKING_CREATE_START: [
-                CallbackQueryHandler(date_callback, pattern="^DATE:"),
+                CallbackQueryHandler(booking_date_callback, pattern="^DATE:"),
             ],
             
             FlowState.BOOKING_CREATE_END: [
-                CallbackQueryHandler(date_callback, pattern="^DATE:"),
+                CallbackQueryHandler(booking_date_callback, pattern="^DATE:"),
                 CallbackQueryHandler(booking_end_unknown, pattern="^BOOKING_END_UNKNOWN$"),
             ],
             
@@ -2977,6 +2971,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
