@@ -59,7 +59,7 @@ TOKEN = os.environ["BOT_TOKEN"]
 async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # --- booking mode ---
-    if context.user_data.get("mode") == "booking":
+    if context.user_data.get("booking") is not None:
         return await booking_date_callback(update, context)
 
     # --- contract/import mode ---
@@ -1069,6 +1069,9 @@ async def booking_finish(update, context):
         "Главное меню:",
         reply_markup=start_keyboard(update.effective_user),
     )
+
+    context.user_data.pop("booking", None)
+    context.user_data.pop("mode", None)
 
     return FlowState.MENU
 
@@ -2887,6 +2890,7 @@ def main():
                 CallbackQueryHandler(date_callback, pattern="^DATE:"),
                 CallbackQueryHandler(booking_end_unknown, pattern="^BOOKING_END_UNKNOWN$"),
             ],
+            
             FlowState.EXPENSES_MENU: [
                 CallbackQueryHandler(expense_add_start, pattern="^EXPENSE_ADD$"),
                 CallbackQueryHandler(back_to_expenses_menu, pattern="^BACK_TO_EXPENSES$"),
@@ -2970,6 +2974,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
