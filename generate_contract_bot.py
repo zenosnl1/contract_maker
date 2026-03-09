@@ -1030,7 +1030,6 @@ async def booking_finish(update, context):
         "client_number": b["client_number"],
         "start_date": start.isoformat(),
         "price_per_day": price,
-        "status": "active",
     }
     
     # optional поля
@@ -2971,6 +2970,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
