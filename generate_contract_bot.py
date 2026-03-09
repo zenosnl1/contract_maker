@@ -961,12 +961,7 @@ async def booking_date_callback(update, context):
     query = update.callback_query
     await query.answer()
 
-    booking = context.user_data.get("booking")
-
-    if not booking:
-        await query.edit_message_text("⚠️ Ошибка бронирования. Начните заново.")
-        return FlowState.MENU
-
+    booking = context.user_data.setdefault("booking", {})
     iso = query.data.split(":")[1]
     d = datetime.fromisoformat(iso).date()
 
@@ -2966,6 +2961,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
