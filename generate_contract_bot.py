@@ -2880,12 +2880,12 @@ def main():
             ],
             
             FlowState.BOOKING_CREATE_START: [
-                CallbackQueryHandler(booking_date_callback, pattern="^DATE:"),
+                CallbackQueryHandler(booking_date_callback, pattern="^DATE:")
             ],
             
             FlowState.BOOKING_CREATE_END: [
                 CallbackQueryHandler(booking_date_callback, pattern="^DATE:"),
-                CallbackQueryHandler(booking_end_unknown, pattern="^BOOKING_END_UNKNOWN$"),
+                CallbackQueryHandler(booking_end_unknown, pattern="^BOOKING_END_UNKNOWN$")
             ],
             
             FlowState.EXPENSES_MENU: [
@@ -2971,6 +2971,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
