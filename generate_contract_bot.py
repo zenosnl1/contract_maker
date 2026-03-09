@@ -61,10 +61,6 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    # ----- если идёт создание брони -----
-    if context.user_data.get("mode") == "booking":
-        return await booking_date_callback(update, context)
-
     # ----- режим договоров -----
     iso = query.data.split(":")[1]
     d = datetime.fromisoformat(iso)
@@ -966,15 +962,13 @@ async def booking_date_callback(update, context):
     query = update.callback_query
     await query.answer()
 
-    await query.message.reply_text("DATE CLICK")
-
     booking = context.user_data.setdefault("booking", {})
     step = context.user_data.setdefault("booking_step", "start")
 
     iso = query.data.split(":")[1]
     d = datetime.fromisoformat(iso).date()
 
-    # ---------- выбор даты заезда ----------
+    # ---------- дата заезда ----------
     if step == "start":
 
         booking["start_date"] = d.isoformat()
@@ -987,7 +981,7 @@ async def booking_date_callback(update, context):
 
         return FlowState.BOOKING_CREATE_END
 
-    # ---------- выбор даты выезда ----------
+    # ---------- дата выезда ----------
     if step == "end":
 
         booking["end_date"] = d.isoformat()
@@ -2981,6 +2975,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
