@@ -909,6 +909,7 @@ async def booking_create_start(update, context):
 
     context.user_data["mode"] = "booking"
     context.user_data["booking"] = {}
+    context.user_data["booking_step"] = "start"
 
     await query.edit_message_text("Введите номер помещения:")
 
@@ -968,32 +969,32 @@ async def booking_date_callback(update, context):
     await query.message.reply_text("DATE CLICK")
 
     booking = context.user_data.setdefault("booking", {})
+    step = context.user_data.setdefault("booking_step", "start")
 
     iso = query.data.split(":")[1]
     d = datetime.fromisoformat(iso).date()
 
-    # ---------- дата заезда ----------
-    if "start_date" not in booking:
+    # ---------- выбор даты заезда ----------
+    if step == "start":
 
         booking["start_date"] = d.isoformat()
+        context.user_data["booking_step"] = "end"
 
-        try:
-            await query.edit_message_text(
-                "📅 Выберите дату выезда:",
-                reply_markup=booking_end_keyboard(d + timedelta(days=1)),
-            )
-        except Exception:
-            await query.message.reply_text(
-                "📅 Выберите дату выезда:",
-                reply_markup=booking_end_keyboard(d + timedelta(days=1)),
-            )
+        await query.edit_message_text(
+            "📅 Выберите дату выезда:",
+            reply_markup=booking_end_keyboard(d + timedelta(days=1)),
+        )
 
         return FlowState.BOOKING_CREATE_END
 
-    # ---------- дата выезда ----------
-    booking["end_date"] = d.isoformat()
+    # ---------- выбор даты выезда ----------
+    if step == "end":
 
-    return await booking_finish(update, context)
+        booking["end_date"] = d.isoformat()
+
+        context.user_data.pop("booking_step", None)
+
+        return await booking_finish(update, context)
 
 
 def booking_end_keyboard(start_from):
@@ -2980,6 +2981,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
