@@ -262,7 +262,7 @@ async def fixed_expense_list(update, context):
 
 async def show_fixed_expenses_menu(update, context):
 
-    msg = update.message or update.callback_query.message
+    msg = update.effective_message
 
     await msg.reply_text(
         "📅 Регулярные расходы\n\nВыберите действие:",
@@ -797,7 +797,7 @@ async def expense_date_today(update, context):
 
     context.user_data["expense"]["date"] = date.today().isoformat()
 
-    msg = update.message or update.callback_query.message
+    msg = update.effective_message
 
     await msg.reply_text(
         "🧾 Что было куплено? (можно написать несколько позиций)"
@@ -826,7 +826,7 @@ async def expense_date_manual_enter(update, context):
 
     context.user_data["expense"]["date"] = d.isoformat()
 
-    msg = update.message or update.callback_query.message
+    msg = update.effective_message
 
     await msg.reply_text(
         "🧾 Что было куплено? (можно написать несколько позиций)"
@@ -1026,10 +1026,12 @@ async def booking_finish(update, context):
         "start_date": start.isoformat(),
         "price_per_day": b["price_per_day"],
         "status": "active",
-        "end_date": end.isoformat() if end else None,
-        "nights": nights,
-        "total_price": total,
     }
+
+    if end:
+        payload["end_date"] = end.isoformat()
+        payload["nights"] = nights
+        payload["total_price"] = total
 
     insert_booking(payload)
 
@@ -1048,7 +1050,7 @@ async def booking_finish(update, context):
         f"💰 Сумма: {total if total is not None else '—'} €"
     )
 
-    msg = update.message or update.callback_query.message
+    msg = update.effective_message
 
     await msg.reply_text(text)
 
@@ -1076,12 +1078,16 @@ async def booking_list_callback(update, context):
     filtered = []
 
     for r in rows:
-
+        start_raw = r.get("start_date")
+    
+        if not start_raw:
+            continue
+    
         try:
-            start = datetime.fromisoformat(r["start_date"]).date()
+            start = datetime.fromisoformat(start_raw).date()
         except Exception:
             continue
-
+    
         if start >= today:
             filtered.append(r)
 
@@ -2148,7 +2154,7 @@ async def continue_after_payment(update, context):
         files = generate_docs(context.user_data)
         context.user_data["_generated_files"] = files
 
-        msg = update.message or update.callback_query.message
+        msg = update.effective_message
 
         await msg.reply_text(
             "📄 Документы готовы.\n\n"
@@ -2165,7 +2171,7 @@ async def continue_after_payment(update, context):
 
     next_field = FIELDS[step]
 
-    msg = update.message or update.callback_query.message
+    msg = update.effective_message
     await msg.reply_text(QUESTIONS[next_field])
 
     return FlowState.FILLING
@@ -2596,7 +2602,7 @@ async def require_admin(update):
     role = get_user_role(update.effective_user)
 
     if role != "admin":
-        msg = update.message or update.callback_query.message
+        msg = update.effective_message
         await msg.reply_text("⛔ У вас нет прав для этого действия.")
         return True
 
@@ -2638,7 +2644,7 @@ async def finalize_close(update, context):
         violations=violations,
     )
 
-    msg = update.message or update.callback_query.message
+    msg = update.effective_message
 
     with open(path, "rb") as f:
         await msg.reply_document(f)
@@ -2961,6 +2967,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
