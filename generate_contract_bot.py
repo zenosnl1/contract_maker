@@ -58,6 +58,11 @@ TOKEN = os.environ["BOT_TOKEN"]
 
 async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    # --- booking mode ---
+    if context.user_data.get("mode") == "booking":
+        return await booking_date_callback(update, context)
+
+    # --- contract/import mode ---
     query = update.callback_query
     await query.answer()
 
@@ -65,7 +70,6 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     d = datetime.fromisoformat(iso)
 
     step = context.user_data["step"]
-
     if step >= len(FIELDS):
         return FlowState.FILLING
 
@@ -2962,6 +2966,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
