@@ -963,13 +963,14 @@ async def booking_date_callback(update, context):
     query = update.callback_query
     await query.answer()
 
-    iso = query.data.split(":")[1]
-    d = datetime.fromisoformat(iso).date()
-
     booking = context.user_data.get("booking")
 
     if not booking:
+        await query.edit_message_text("⚠️ Ошибка бронирования. Начните заново.")
         return FlowState.MENU
+
+    iso = query.data.split(":")[1]
+    d = datetime.fromisoformat(iso).date()
 
     # ---------- выбор даты заезда ----------
     if "start_date" not in booking:
@@ -986,7 +987,6 @@ async def booking_date_callback(update, context):
     # ---------- выбор даты выезда ----------
     booking["end_date"] = d.isoformat()
 
-    # сразу завершаем создание брони
     return await booking_finish(update, context)
 
 
@@ -2977,6 +2977,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
