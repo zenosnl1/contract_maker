@@ -968,7 +968,7 @@ async def booking_date_callback(update, context):
 
     booking = context.user_data.setdefault("booking", {})
 
-    # ---------- заезд ----------
+    # ---------- выбор даты заезда ----------
     if "start_date" not in booking:
 
         booking["start_date"] = d.isoformat()
@@ -980,9 +980,10 @@ async def booking_date_callback(update, context):
 
         return FlowState.BOOKING_CREATE_END
 
-    # ---------- выезд ----------
+    # ---------- выбор даты выезда ----------
     booking["end_date"] = d.isoformat()
 
+    # сразу завершаем создание брони
     return await booking_finish(update, context)
 
 
@@ -2969,6 +2970,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
