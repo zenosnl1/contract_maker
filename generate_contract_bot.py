@@ -58,18 +58,19 @@ TOKEN = os.environ["BOT_TOKEN"]
 
 async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # --- booking mode ---
-    if context.user_data.get("mode") == "booking":
-        return await booking_date_callback(update, context)
-
-    # --- contract/import mode ---
     query = update.callback_query
     await query.answer()
 
+    # ----- если идёт создание брони -----
+    if context.user_data.get("mode") == "booking":
+        return await booking_date_callback(update, context)
+
+    # ----- режим договоров -----
     iso = query.data.split(":")[1]
     d = datetime.fromisoformat(iso)
 
     step = context.user_data["step"]
+
     if step >= len(FIELDS):
         return FlowState.FILLING
 
@@ -80,6 +81,7 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step += 1
     context.user_data["step"] = step
 
+    # после выбора даты заезда
     if field == "START_DATE":
         next_day = d + timedelta(days=1)
 
@@ -87,6 +89,7 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📅 Выберите дату выезда:",
             reply_markup=date_keyboard(start_from=next_day),
         )
+
         return FlowState.FILLING
 
     next_field = FIELDS[step]
@@ -99,6 +102,7 @@ async def date_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return FlowState.FILLING
 
     await query.edit_message_text(QUESTIONS[next_field])
+
     return FlowState.FILLING
 
 def payment_method_keyboard():
@@ -962,10 +966,11 @@ async def booking_date_callback(update, context):
     await query.answer()
 
     booking = context.user_data.setdefault("booking", {})
+
     iso = query.data.split(":")[1]
     d = datetime.fromisoformat(iso).date()
 
-    # ---------- выбор даты заезда ----------
+    # ----- выбираем дату заезда -----
     if "start_date" not in booking:
 
         booking["start_date"] = d.isoformat()
@@ -977,7 +982,7 @@ async def booking_date_callback(update, context):
 
         return FlowState.BOOKING_CREATE_END
 
-    # ---------- выбор даты выезда ----------
+    # ----- выбираем дату выезда -----
     booking["end_date"] = d.isoformat()
 
     return await booking_finish(update, context)
@@ -2967,6 +2972,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
