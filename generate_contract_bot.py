@@ -861,7 +861,7 @@ async def expense_description_enter(update, context):
     return FlowState.EXPENSE_PAYMENT_METHOD
 
 
-def date_keyboard(days=40, start_from=None):
+def date_keyboard(days=30, start_from=None):
 
     if start_from:
         base = start_from
@@ -964,6 +964,8 @@ async def booking_date_callback(update, context):
 
     query = update.callback_query
     await query.answer()
+
+    await query.message.reply_text("DATE CLICK")
 
     booking = context.user_data.setdefault("booking", {})
 
@@ -2978,6 +2980,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
