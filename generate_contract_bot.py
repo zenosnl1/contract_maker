@@ -859,7 +859,7 @@ async def expense_description_enter(update, context):
     return FlowState.EXPENSE_PAYMENT_METHOD
 
 
-def date_keyboard(days=30, start_from=None):
+def date_keyboard(days=40, start_from=None):
 
     if start_from:
         base = start_from
@@ -966,7 +966,10 @@ async def booking_date_callback(update, context):
     iso = query.data.split(":")[1]
     d = datetime.fromisoformat(iso).date()
 
-    booking = context.user_data.setdefault("booking", {})
+    booking = context.user_data.get("booking")
+
+    if not booking:
+        return FlowState.MENU
 
     # ---------- выбор даты заезда ----------
     if "start_date" not in booking:
@@ -2974,6 +2977,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
