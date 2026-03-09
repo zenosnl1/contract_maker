@@ -1009,40 +1009,32 @@ async def booking_finish(update, context):
 
     b = context.user_data["booking"]
 
-    # --- даты ---
     start = datetime.fromisoformat(b["start_date"]).date()
 
-    if b["end_date"]:
+    end = None
+    nights = None
+    total = None
+
+    if b.get("end_date"):
         end = datetime.fromisoformat(b["end_date"]).date()
         nights = (end - start).days
-    else:
-        end = None
-        nights = None
+        total = nights * b["price_per_day"]
 
-    price = b["price_per_day"]
-
-    total = nights * price if nights is not None else None
-
-    # --- payload в БД ---
     payload = {
         "flat_number": b["flat_number"],
         "client_name": b["client_name"],
         "client_number": b["client_number"],
         "start_date": start.isoformat(),
-        "price_per_day": price,
+        "price_per_day": b["price_per_day"],
+        "status": "active",
+        "end_date": end.isoformat() if end else None,
+        "nights": nights,
+        "total_price": total,
     }
-    
-    # optional поля
-    if end:
-        payload["end_date"] = end.isoformat()
-        payload["nights"] = nights
-        payload["total_price"] = total
-    
+
     insert_booking(payload)
 
-    # --- красиво пользователю ---
     start_txt = start.strftime("%d.%m.%Y")
-
     end_txt = end.strftime("%d.%m.%Y") if end else "❓"
 
     text = (
@@ -1053,7 +1045,7 @@ async def booking_finish(update, context):
         f"📅 Заезд: {start_txt}\n"
         f"📅 Выезд: {end_txt}\n"
         f"🌙 Ночей: {nights if nights is not None else '—'}\n"
-        f"💶 Цена/ночь: {price} €\n"
+        f"💶 Цена/ночь: {b['price_per_day']} €\n"
         f"💰 Сумма: {total if total is not None else '—'} €"
     )
 
@@ -2970,6 +2962,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
